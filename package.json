@@ -38,9 +38,9 @@
     "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:migrate && npm run db:seed"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "@types/node": "^20.10.0",
-    "typescript": "^5.3.0"
+    "concurrently": "^9.1.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=18.0.0",

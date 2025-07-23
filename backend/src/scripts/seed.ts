@@ -21,7 +21,7 @@ async function main(): Promise<void> {
       businessType: 'plumbing',
       phone: '+61400000000',
       emailVerified: true,
-      preferences: {
+      preferences: JSON.stringify({
         notifications: {
           email: true,
           push: false,
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
         integrations: {
           autoConnect: false,
         },
-      },
+      }),
     },
   });
 
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
       name: 'gmail-agent',
       description: 'Gmail integration agent for email management',
       endpoint: 'http://localhost:3001/mcp/gmail',
-      capabilities: [
+      capabilities: JSON.stringify([
         {
           name: 'send_email',
           description: 'Send emails via Gmail',
@@ -74,15 +74,15 @@ async function main(): Promise<void> {
             },
           },
         },
-      ],
-      configuration: {
+      ]),
+      configuration: JSON.stringify({
         timeout: 30000,
         retries: 3,
         rateLimit: {
           requests: 100,
           window: 3600,
         },
-      },
+      }),
       version: '1.0.0',
       healthCheckUrl: 'http://localhost:3001/mcp/gmail/health',
       healthStatus: 'unknown',
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
       name: 'calendar-agent',
       description: 'Google Calendar integration agent',
       endpoint: 'http://localhost:3001/mcp/calendar',
-      capabilities: [
+      capabilities: JSON.stringify([
         {
           name: 'create_event',
           description: 'Create calendar events',
@@ -123,11 +123,11 @@ async function main(): Promise<void> {
             },
           },
         },
-      ],
-      configuration: {
+      ]),
+      configuration: JSON.stringify({
         timeout: 15000,
         retries: 2,
-      },
+      }),
       version: '1.0.0',
       healthCheckUrl: 'http://localhost:3001/mcp/calendar/health',
       healthStatus: 'unknown',
@@ -141,7 +141,7 @@ async function main(): Promise<void> {
       name: 'document-agent',
       description: 'Document processing and analysis agent',
       endpoint: 'http://localhost:3001/mcp/document',
-      capabilities: [
+      capabilities: JSON.stringify([
         {
           name: 'process_document',
           description: 'Process and extract text from documents',
@@ -167,12 +167,12 @@ async function main(): Promise<void> {
             required: ['query'],
           },
         },
-      ],
-      configuration: {
+      ]),
+      configuration: JSON.stringify({
         timeout: 60000,
         retries: 1,
         maxFileSize: 10485760, // 10MB
-      },
+      }),
       version: '1.0.0',
       healthCheckUrl: 'http://localhost:3001/mcp/document/health',
       healthStatus: 'unknown',
@@ -186,10 +186,10 @@ async function main(): Promise<void> {
     data: {
       userId: testUser.id,
       title: 'Getting Started',
-      contextData: {
+      contextData: JSON.stringify({
         businessType: 'plumbing',
         currentTask: 'setup',
-      },
+      }),
       messageCount: 2,
     },
   });
@@ -201,15 +201,15 @@ async function main(): Promise<void> {
         sessionId: chatSession.id,
         role: 'user',
         content: 'Hi, I need help setting up my business email integration.',
-        metadata: {},
+        metadata: JSON.stringify({}),
       },
       {
         sessionId: chatSession.id,
         role: 'assistant',
         content: 'I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?',
-        metadata: {
+        metadata: JSON.stringify({
           suggestions: ['Connect Gmail', 'Learn more about integrations', 'View available features'],
-        },
+        }),
       },
     ],
   });

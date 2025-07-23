@@ -20,7 +20,7 @@ model User {
   businessType      String?   @map("business_type")
   phone             String?
   timezone          String    @default("Australia/Sydney")
-  preferences       Json      @default("{}")
+  preferences       String    @default("{}")
   emailVerified     Boolean   @default(false) @map("email_verified")
   emailVerifiedAt   DateTime? @map("email_verified_at")
   lastLoginAt       DateTime? @map("last_login_at")
@@ -41,7 +41,7 @@ model ChatSession {
   id              String    @id @default(cuid())
   userId          String    @map("user_id")
   title           String?
-  contextData     Json      @default("{}") @map("context_data")
+  contextData     String    @default("{}") @map("context_data")
   status          String    @default("active") // active, archived, deleted
   messageCount    Int       @default(0) @map("message_count")
   lastActivityAt  DateTime  @default(now()) @map("last_activity_at")
@@ -65,7 +65,7 @@ model Message {
   sessionId        String    @map("session_id")
   role             String    // user, assistant, system
   content          String
-  metadata         Json      @default("{}")
+  metadata         String    @default("{}")
   tokenCount       Int?      @map("token_count")
   processingTimeMs Int?      @map("processing_time_ms")
   timestamp        DateTime  @default(now())
@@ -92,7 +92,7 @@ model Integration {
   scopes                 String    // JSON array as string
   capabilities           String    // JSON array as string
   status                 String    @default("connected") // connected, expired, error, disconnected
-  metadata               Json      @default("{}")
+  metadata               String    @default("{}")
   lastSyncAt             DateTime? @map("last_sync_at")
   connectedAt            DateTime  @default(now()) @map("connected_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
@@ -121,7 +121,7 @@ model Document {
   fileSize         Int       @map("file_size")
   filePath         String    @map("file_path")
   contentText      String?   @map("content_text")
-  extractedData    Json      @default("{}") @map("extracted_data")
+  extractedData    String    @default("{}") @map("extracted_data")
   processingStatus String    @default("pending") @map("processing_status") // pending, processing, completed, failed
   processingError  String?   @map("processing_error")
   uploadedAt       DateTime  @default(now()) @map("uploaded_at")
@@ -143,8 +143,8 @@ model MCPAgent {
   name             String    @unique
   description      String?
   endpoint         String
-  capabilities     Json      @default("[]")
-  configuration    Json      @default("{}")
+  capabilities     String    @default("[]")
+  configuration    String    @default("{}")
   status           String    @default("active") // active, inactive, error
   version          String?
   healthCheckUrl   String?   @map("health_check_url")
@@ -169,15 +169,15 @@ model Task {
   agentId           String       @map("agent_id")
   integrationId     String?      @map("integration_id")
   taskType          String       @map("task_type")
-  inputPayload      Json         @map("input_payload")
-  outputPayload     Json?        @map("output_payload")
+  inputPayload      String       @map("input_payload")
+  outputPayload     String?      @map("output_payload")
   status            String       @default("pending") // pending, running, completed, failed, cancelled
   errorMessage      String?      @map("error_message")
   startedAt         DateTime     @default(now()) @map("started_at")
   completedAt       DateTime?    @map("completed_at")
   processingTimeMs  Int?         @map("processing_time_ms")
   retryCount        Int          @default(0) @map("retry_count")
-  metadata          Json         @default("{}")
+  metadata          String       @default("{}")
 
   // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
