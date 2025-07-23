@@ -1,0 +1,63 @@
+{
+  "name": "intelligent-assistant",
+  "version": "0.1.0",
+  "description": "AI-powered administrative assistant for Australian trade businesses",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:shared": "cd shared && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm run test",
+    "test:frontend": "cd frontend && npm run test",
+    "test:watch": "concurrently \"npm run test:backend -- --watch\" \"npm run test:frontend -- --watch\"",
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:shared": "cd shared && npm run lint",
+    "lint:fix": "npm run lint:backend -- --fix && npm run lint:frontend -- --fix && npm run lint:shared -- --fix",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend && npm run type-check:shared",
+    "type-check:backend": "cd backend && npm run type-check",
+    "type-check:frontend": "cd frontend && npm run type-check",
+    "type-check:shared": "cd shared && npm run type-check",
+    "clean": "rm -rf frontend/dist backend/dist shared/dist frontend/node_modules backend/node_modules shared/node_modules node_modules",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../shared && npm install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:migrate && npm run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/intelligent-assistant.git"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "trade-business",
+    "mcp",
+    "chat-interface",
+    "australia"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT"
+}

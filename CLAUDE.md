@@ -1,8 +1,17 @@
-Below is a comprehensive prompt designed to guide the development of an AI-powered administrative assistant application for small trade businesses in Australia. This prompt outlines the objective, key features, architecture, technology stack, and a phased development approach, tailored to meet the requirements of an AI chat interface, application integrations via MCP (Model Context Protocol) servers, secure authentication, and document processing.
+# AI-Powered Administrative Assistant - Claude Code Instructions
 
----
+## Project Overview
+This is an AI-driven administrative assistant application for small trade businesses in Australia. The application features an AI chat interface accessible from mobile and desktop devices, with MCP (Model Context Protocol) integrations, secure authentication, and document processing capabilities.
 
-### Prompt for Building an AI-Powered Administrative Assistant Application
+## Quick Reference
+- **Documentation**: See `/docs/` folder for detailed specifications
+- **Architecture**: Microservices with React frontend, Node.js backend, PostgreSQL database
+- **Development**: Phase-based approach starting with MVP (chat + Gmail integration)
+- **Testing**: Run `npm run test` for backend, `npm run test:frontend` for frontend
+- **Build**: Use `npm run build` to build all services
+- **Deployment**: Docker-based with Kubernetes for production
+
+## Core Application Requirements
 
 **Objective**:  
 Develop an AI-driven application that acts as a centralized administrative assistant for small trade businesses in Australia. The application will feature an AI chat interface, accessible from both mobile and desktop devices, to manage administrative tasks. It will recommend and connect to external applications (e.g., Gmail, Calendar, HubSpot) through an AI-curated library of **MCP (Model Context Protocol)** servers, which enable the main AI agent to interface with specialized agents for specific tasks. Users will authenticate securely to these applications, and the app will process industry standards and business information from URLs or uploaded files to maintain persistent context.
@@ -101,7 +110,7 @@ The application will use a modular architecture for scalability and ease of deve
 
    - AI recommends an application (e.g., Gmail) from the MCP library.
    - User selects the application, triggering OAuth 2.0 authentication.
-   - Backend executes the task via the application’s API (e.g., sends an email).
+   - Backend executes the task via the application's API (e.g., sends an email).
 
 4. **Context Storage**:
    - AI saves interaction details and extracted data to the database for future use.
@@ -200,4 +209,64 @@ The application will use a modular architecture for scalability and ease of deve
 
 ---
 
-This prompt provides a detailed roadmap for building your AI-powered administrative assistant application, ensuring all key requirements—chat interface, MCP-driven integrations, authentication, and document processing—are addressed systematically. You can use this with a development tool or team to kickstart the project, adjusting specifics as needed based on resources or priorities.
+## Development Instructions for Claude Code
+
+### Current Development Phase
+We are in **Phase 1: Foundation & Core Chat** (see `/docs/development-roadmap.md`)
+
+### Immediate Next Steps
+1. **Project Structure Setup**: Create the monorepo structure as defined in `/docs/project-structure.md`
+2. **Environment Setup**: Follow `/docs/development-environment.md` for local development
+3. **Database Schema**: Implement the schema from `/docs/data-models.md`
+4. **API Foundation**: Build REST endpoints per `/docs/api-documentation.md`
+5. **Frontend Scaffold**: Create React components for chat interface
+
+### Key Implementation Guidelines
+
+#### Code Quality Standards
+- **TypeScript**: Strict mode enabled throughout
+- **Testing**: Minimum 80% code coverage
+- **Linting**: ESLint + Prettier configuration
+- **Architecture**: Follow microservices patterns from `/docs/system-architecture.md`
+
+#### Security Requirements
+- **Authentication**: JWT with refresh tokens
+- **OAuth 2.0**: For external integrations
+- **Data Encryption**: AES-256 for sensitive data at rest
+- **Input Validation**: Comprehensive sanitization
+- **Rate Limiting**: API protection against abuse
+
+#### Performance Targets
+- **Chat Response**: < 200ms for simple queries
+- **AI Processing**: < 2s for complex NLP tasks
+- **File Upload**: < 30s for document processing
+- **Concurrent Users**: Support 1000+ users
+
+### File Structure Priority
+When building, focus on this order:
+1. `/packages/shared/` - Common types and utilities
+2. `/packages/backend/` - API server with authentication
+3. `/packages/frontend/` - React chat interface
+4. `/packages/ai-engine/` - AI processing service
+5. Integration services (after MVP)
+
+### Testing Strategy
+- **Unit Tests**: All service functions
+- **Integration Tests**: API endpoints
+- **Component Tests**: React components
+- **E2E Tests**: Critical user flows
+- Run tests before any commits
+
+### Deployment Notes
+- **Development**: Docker Compose setup
+- **Production**: Kubernetes with managed databases  
+- **Monitoring**: Implement logging and metrics from start
+- **CI/CD**: GitHub Actions for automated testing and deployment
+
+### External Dependencies
+- **AI Models**: Hugging Face Transformers or OpenAI API
+- **Databases**: PostgreSQL (primary), Redis (cache)
+- **OAuth Providers**: Google, Microsoft for integrations
+- **File Storage**: Local filesystem initially, S3-compatible later
+
+This comprehensive planning provides a solid foundation for building the AI-powered administrative assistant application systematically and efficiently.

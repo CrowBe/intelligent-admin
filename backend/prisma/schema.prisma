@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
+  businessName      String?   @map("business_name")
+  businessType      String?   @map("business_type")
+  phone             String?
+  timezone          String    @default("Australia/Sydney")
+  preferences       Json      @default("{}")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  // Relations
+  chatSessions  ChatSession[]
+  integrations  Integration[]
+  documents     Document[]
+  tasks         Task[]
+
+  @@map("users")
+}
+
+model ChatSession {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  title           String?
+  contextData     Json      @default("{}") @map("context_data")
+  status          String    @default("active") // active, archived, deleted
+  messageCount    Int       @default(0) @map("message_count")
+  lastActivityAt  DateTime  @default(now()) @map("last_activity_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  tasks    Task[]
+
+  @@index([userId])
+  @@index([lastActivityAt])
+  @@index([status])
+  @@map("chat_sessions")
+}
+
+model Message {
+  id               String    @id @default(cuid())
+  sessionId        String    @map("session_id")
+  role             String    // user, assistant, system
+  content          String
+  metadata         Json      @default("{}")
+  tokenCount       Int?      @map("token_count")
+  processingTimeMs Int?      @map("processing_time_ms")
+  timestamp        DateTime  @default(now())
+  editedAt         DateTime? @map("edited_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  // Relations
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([role])
+  @@map("messages")
+}
+
+model Integration {
+  id                     String    @id @default(cuid())
+  userId                 String    @map("user_id")
+  provider               String    // gmail, google_calendar, hubspot, etc.
+  providerUserId         String?   @map("provider_user_id")
+  encryptedTokens        String    @map("encrypted_tokens")
+  refreshTokenEncrypted  String?   @map("refresh_token_encrypted")
+  tokenExpiresAt         DateTime? @map("token_expires_at")
+  scopes                 String    // JSON array as string
+  capabilities           String    // JSON array as string
+  status                 String    @default("connected") // connected, expired, error, disconnected
+  metadata               Json      @default("{}")
+  lastSyncAt             DateTime? @map("last_sync_at")
+  connectedAt            DateTime  @default(now()) @map("connected_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  deletedAt              DateTime? @map("deleted_at")
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+  @@index([status])
+  @@map("integrations")
+}
+
+model Document {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  filename         String
+  originalFilename String    @map("original_filename")
+  title            String?
+  category         String?
+  tags             String    @default("[]") // JSON array as string
+  mimeType         String    @map("mime_type")
+  fileSize         Int       @map("file_size")
+  filePath         String    @map("file_path")
+  contentText      String?   @map("content_text")
+  extractedData    Json      @default("{}") @map("extracted_data")
+  processingStatus String    @default("pending") @map("processing_status") // pending, processing, completed, failed
+  processingError  String?   @map("processing_error")
+  uploadedAt       DateTime  @default(now()) @map("uploaded_at")
+  processedAt      DateTime? @map("processed_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@index([processingStatus])
+  @@index([uploadedAt])
+  @@map("documents")
+}
+
+model MCPAgent {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  description      String?
+  endpoint         String
+  capabilities     Json      @default("[]")
+  configuration    Json      @default("{}")
+  status           String    @default("active") // active, inactive, error
+  version          String?
+  healthCheckUrl   String?   @map("health_check_url")
+  lastHealthCheck  DateTime? @map("last_health_check")
+  healthStatus     String    @default("unknown") @map("health_status") // healthy, unhealthy, unknown
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  // Relations
+  tasks Task[]
+
+  @@index([name])
+  @@index([status])
+  @@map("mcp_agents")
+}
+
+model Task {
+  id                String       @id @default(cuid())
+  userId            String       @map("user_id")
+  sessionId         String?      @map("session_id")
+  agentId           String       @map("agent_id")
+  integrationId     String?      @map("integration_id")
+  taskType          String       @map("task_type")
+  inputPayload      Json         @map("input_payload")
+  outputPayload     Json?        @map("output_payload")
+  status            String       @default("pending") // pending, running, completed, failed, cancelled
+  errorMessage      String?      @map("error_message")
+  startedAt         DateTime     @default(now()) @map("started_at")
+  completedAt       DateTime?    @map("completed_at")
+  processingTimeMs  Int?         @map("processing_time_ms")
+  retryCount        Int          @default(0) @map("retry_count")
+  metadata          Json         @default("{}")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  agent       MCPAgent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  integration Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([agentId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("tasks")
+}
