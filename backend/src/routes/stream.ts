@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { asyncHandler, CustomError } from '../middleware/errorHandler.js';
 import { chatService } from '../services/chat.js';
-import { openaiService } from '../services/openai.js';
+import { getOpenAIService } from '../services/openai.js';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -33,6 +33,7 @@ router.post('/chat/:sessionId',
   ],
   validateRequest,
   asyncHandler(async (req: any, res) => {
+    const openaiService = getOpenAIService();
     if (!openaiService.isAvailable()) {
       throw new CustomError('AI service is not available - OpenAI API key required', 503);
     }
@@ -204,7 +205,7 @@ router.get('/health', (req, res) => {
   sendEvent({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    openai_available: openaiService.isAvailable(),
+    openai_available: getOpenAIService().isAvailable(),
   });
 
   res.end();

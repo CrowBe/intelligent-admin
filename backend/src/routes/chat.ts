@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { asyncHandler, CustomError } from '../middleware/errorHandler.js';
 import { chatService } from '../services/chat.js';
-import { openaiService } from '../services/openai.js';
+import { getOpenAIService } from '../services/openai.js';
 
 const router = Router();
 
@@ -75,6 +75,7 @@ router.post('/sessions/:sessionId/messages',
   ],
   validateRequest,
   asyncHandler(async (req: any, res) => {
+    const openaiService = getOpenAIService();
     if (!openaiService.isAvailable()) {
       throw new CustomError('AI service is not available - OpenAI API key required', 503);
     }
@@ -151,6 +152,7 @@ router.get('/stats',
 // GET /api/v1/chat/config
 router.get('/config',
   asyncHandler(async (req, res) => {
+    const openaiService = getOpenAIService();
     const config = openaiService.getConfig();
     res.json({ config });
   })

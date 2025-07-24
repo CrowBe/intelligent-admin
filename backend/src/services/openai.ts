@@ -300,5 +300,7 @@ export class OpenAIService {
   }
 }
 
-// Export singleton instance
-export const openaiService = OpenAIService.getInstance();
+// Export function to get singleton instance (lazy initialization)
+export const getOpenAIService = (): OpenAIService => {
+  return OpenAIService.getInstance();
+};

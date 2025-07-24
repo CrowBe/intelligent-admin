@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { openaiService, ChatMessage, SYSTEM_PROMPTS } from './openai.js';
+import { getOpenAIService, ChatMessage, SYSTEM_PROMPTS } from './openai.js';
 import { logger } from '../utils/logger.js';
 import { CustomError } from '../middleware/errorHandler.js';
 
@@ -240,6 +240,7 @@ export class ChatService {
       }
 
       // Generate AI response
+      const openaiService = getOpenAIService();
       const messages = openaiService.buildChatMessages(
         data.content,
         conversationHistory,

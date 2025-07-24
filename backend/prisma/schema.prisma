@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -29,10 +29,14 @@ model User {
   deletedAt         DateTime? @map("deleted_at")
 
   // Relations
-  chatSessions  ChatSession[]
-  integrations  Integration[]
-  documents     Document[]
-  tasks         Task[]
+  chatSessions      ChatSession[]
+  integrations      Integration[]
+  documents         Document[]
+  tasks             Task[]
+  userPreferences   UserPreference[]
+  emailAnalyses     EmailAnalysis[]
+  notifications     Notification[]
+  workflowPatterns  WorkflowPattern[]
 
   @@map("users")
 }
@@ -191,4 +195,127 @@ model Task {
   @@index([status])
   @@index([startedAt])
   @@map("tasks")
+}
+
+// Enhanced Phase 1 Tables
+
+model UserPreference {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  preferenceType  String    @map("preference_type") // follow_up_timing, communication_tone, task_batching, etc.
+  preferenceData  String    @map("preference_data") // JSON data
+  confidence      Float     @default(0.5) // How confident we are in this preference (0-1)
+  learnedAt       DateTime  @default(now()) @map("learned_at")
+  lastAppliedAt   DateTime? @map("last_applied_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, preferenceType])
+  @@index([userId])
+  @@index([preferenceType])
+  @@map("user_preferences")
+}
+
+model EmailAnalysis {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  emailMessageId    String    @map("email_message_id") // Gmail message ID
+  senderEmail       String    @map("sender_email")
+  subject           String
+  urgencyScore      Float     @map("urgency_score") // 0-1 scale
+  category          String    // urgent, standard, follow_up, admin
+  keywords          String    @default("[]") // JSON array of detected keywords
+  businessImpact    String?   @map("business_impact") // high, medium, low
+  suggestedActions  String    @default("[]") @map("suggested_actions") // JSON array
+  customerType      String?   @map("customer_type") // business, residential
+  jobValue          Float?    @map("job_value") // Estimated job value if detected
+  responseGenerated Boolean   @default(false) @map("response_generated")
+  userFeedback      String?   @map("user_feedback") // JSON feedback on accuracy
+  analyzedAt        DateTime  @default(now()) @map("analyzed_at")
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, emailMessageId])
+  @@index([userId])
+  @@index([category])
+  @@index([urgencyScore])
+  @@index([analyzedAt])
+  @@map("email_analyses")
+}
+
+model IndustryKnowledge {
+  id              String    @id @default(cuid())
+  source          String    // australian_standards, esv, mea, electrical_connection, etc.
+  sourceUrl       String?   @map("source_url")
+  contentType     String    @map("content_type") // regulation, pricing, standard, best_practice
+  category        String    // electrical, plumbing, carpentry, etc.
+  title           String
+  content         String    // Full text content
+  extractedData   String    @default("{}") @map("extracted_data") // Structured JSON data
+  relevanceScore  Float     @default(0.5) @map("relevance_score") // How relevant to users
+  lastUpdated     DateTime  @map("last_updated")
+  nextUpdateDue   DateTime? @map("next_update_due")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([source])
+  @@index([contentType])
+  @@index([category])
+  @@index([relevanceScore])
+  @@index([lastUpdated])
+  @@map("industry_knowledge")
+}
+
+model Notification {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  type            String    // morning_brief, urgent_email, task_reminder, etc.
+  title           String
+  content         String
+  data            String    @default("{}") // JSON data for the notification
+  scheduled       Boolean   @default(false) // Is this a scheduled notification?
+  scheduledFor    DateTime? @map("scheduled_for")
+  sentAt          DateTime? @map("sent_at")
+  openedAt        DateTime? @map("opened_at")
+  clickedAt       DateTime? @map("clicked_at")
+  status          String    @default("pending") // pending, sent, opened, clicked, failed
+  deviceToken     String?   @map("device_token") // Firebase device token
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([sentAt])
+  @@map("notifications")
+}
+
+model WorkflowPattern {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  patternType     String    @map("pattern_type") // email_batch_timing, follow_up_preference, etc.
+  patternData     String    @map("pattern_data") // JSON data describing the pattern
+  confidence      Float     @default(0.1) // How confident we are (0-1)
+  occurrences     Int       @default(1) // How many times we've seen this pattern
+  lastSeen        DateTime  @default(now()) @map("last_seen")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, patternType])
+  @@index([userId])
+  @@index([patternType])
+  @@index([confidence])
+  @@index([lastSeen])
+  @@map("workflow_patterns")
 }
