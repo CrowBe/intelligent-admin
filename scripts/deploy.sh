@@ -28,8 +28,8 @@ docker-compose -f docker-compose.prod.yml build
 
 # Tag images
 echo "🏷️  Tagging images..."
-docker tag intelligent-assistant-backend:latest your-registry/intelligent-assistant-backend:$(git rev-parse --short HEAD)
-docker tag intelligent-assistant-frontend:latest your-registry/intelligent-assistant-frontend:$(git rev-parse --short HEAD)
+docker tag intelligent-admin-backend:latest your-registry/intelligent-admin-backend:$(git rev-parse --short HEAD)
+docker tag intelligent-admin-frontend:latest your-registry/intelligent-admin-frontend:$(git rev-parse --short HEAD)
 
 echo "✅ Deployment preparation complete!"
 echo "📋 Next steps:"

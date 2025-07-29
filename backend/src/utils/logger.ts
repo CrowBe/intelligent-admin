@@ -25,7 +25,7 @@ const consoleFormat = winston.format.combine(
 export const logger = winston.createLogger({
   level: config.LOG_LEVEL,
   format: logFormat,
-  defaultMeta: { service: 'intelligent-assistant-api' },
+  defaultMeta: { service: 'intelligent-admin-api' },
   transports: [
     // Console transport for development
     new winston.transports.Console({
