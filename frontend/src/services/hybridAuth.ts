@@ -13,7 +13,6 @@ const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/gmail.compose',
-  'https://www.googleapis.com/auth/gmail.metadata',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile'
 ].join(' ');
@@ -98,6 +97,14 @@ export class HybridAuthService {
       await this.initialize();
     }
 
+    // Force create a new token client with current scopes to avoid cached permissions
+    console.log('🔄 Creating fresh token client with scopes:', GMAIL_SCOPES);
+    this.tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GMAIL_SCOPES,
+      callback: '', // Will be set below
+    });
+
     return new Promise((resolve, reject) => {
       try {
         // Set up the callback for this specific request
@@ -129,12 +136,13 @@ export class HybridAuthService {
           }).catch(reject);
         };
 
-        // Request access token
-        if (kindeUserEmail) {
-          this.tokenClient.requestAccessToken({ login_hint: kindeUserEmail });
-        } else {
-          this.tokenClient.requestAccessToken();
-        }
+        // Request access token with forced consent to get updated scopes
+        const requestOptions = {
+          prompt: 'consent', // Force re-consent to get updated scopes
+          ...(kindeUserEmail && { login_hint: kindeUserEmail })
+        };
+        
+        this.tokenClient.requestAccessToken(requestOptions);
         
       } catch (error) {
         console.error('❌ Gmail connection failed:', error);

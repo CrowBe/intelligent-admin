@@ -5,7 +5,7 @@
 /* Custom scrollbar styles */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: hsl(var(--color-border)) hsl(var(--color-muted));
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -13,17 +13,17 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: hsl(var(--color-muted));
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: hsl(var(--color-border));
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: hsl(var(--color-muted-foreground));
 }
 
 /* Animation classes */
@@ -68,7 +68,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #6b7280;
+  background-color: hsl(var(--color-muted-foreground));
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -88,26 +88,26 @@
 
 /* Custom button styles */
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
 }
 
 .btn-secondary {
-  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
 }
 
 .btn-ghost {
-  @apply text-gray-600 hover:text-gray-800 hover:bg-gray-100 font-medium py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent font-medium py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
 }
 
 /* Message bubble styles */
 .message-user {
-  @apply bg-blue-600 text-white ml-auto;
+  @apply bg-primary text-primary-foreground ml-auto;
 }
 
 .message-assistant {
-  @apply bg-white text-gray-800 border border-gray-200;
+  @apply bg-card text-card-foreground border border-border;
 }
 
 .message-system {
-  @apply bg-yellow-50 text-yellow-800 border border-yellow-200;
+  @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
 }

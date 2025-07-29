@@ -12,7 +12,7 @@ This guide will help you set up Firebase for the Intelligent Assistant applicati
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click "Create a project" or "Add project"
-3. Enter project name: `intelligent-assistant` (or your preferred name)
+3. Enter project name: `intelligent-admin` (or your preferred name)
 4. Enable Google Analytics (recommended)
 5. Choose or create a Google Analytics account
 6. Click "Create project"
@@ -37,7 +37,7 @@ This guide will help you set up Firebase for the Intelligent Assistant applicati
 1. In **Project Settings** > **General** tab
 2. Scroll down to **Your apps** section
 3. Click **Web app** icon (`</>`)
-4. Enter app nickname: `intelligent-assistant-web`
+4. Enter app nickname: `intelligent-admin-web`
 5. Check **"Also set up Firebase Hosting"** (optional)
 6. Click **Register app**
 7. Copy the Firebase configuration object

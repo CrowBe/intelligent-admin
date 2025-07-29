@@ -5,7 +5,7 @@ import { EmailSummary } from './gmailApi';
 
 // Analysis result types
 export interface EmailAnalysis {
-  priority: 'urgent' | 'high' | 'normal' | 'low';
+  priority: 'urgent' | 'high' | 'medium' | 'low';
   category: 'urgent' | 'standard' | 'follow-up' | 'admin' | 'spam';
   urgencyScore: number; // 0-100
   businessRelevance: number; // 0-100
@@ -213,7 +213,7 @@ export class EmailAnalysisService {
     if (category === 'urgent' || urgencyScore > 80) return 'urgent';
     if (urgencyScore > 60 || (businessRelevance > 80 && urgencyScore > 40)) return 'high';
     if (urgencyScore < 20 && businessRelevance < 30) return 'low';
-    return 'normal';
+    return 'medium';
   }
 
   // Extract relevant keywords
@@ -308,7 +308,7 @@ export class EmailAnalysisService {
 
   // Sort emails by priority and urgency
   static sortEmailsByPriority(emails: Array<EmailSummary & { analysis: EmailAnalysis }>): Array<EmailSummary & { analysis: EmailAnalysis }> {
-    const priorityOrder = { 'urgent': 4, 'high': 3, 'normal': 2, 'low': 1 };
+    const priorityOrder = { 'urgent': 4, 'high': 3, 'medium': 2, 'low': 1 };
     
     return emails.sort((a, b) => {
       const aPriority = priorityOrder[a.analysis.priority];

@@ -39,5 +39,6 @@
     }
   },
   "include": ["src", "../shared/src"],
+  "exclude": [],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

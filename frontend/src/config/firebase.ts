@@ -56,7 +56,7 @@ export const initializeMessaging = async () => {
       return messaging;
     } catch (error) {
       console.error('💥 Error initializing Firebase messaging:', error);
-      console.error('Error details:', error.message);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
     }
   } else {
     if (!supported) {

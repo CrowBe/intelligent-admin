@@ -1,5 +1,5 @@
 {
-  "name": "intelligent-assistant",
+  "name": "intelligent-admin",
   "version": "0.1.0",
   "description": "AI-powered administrative assistant for Australian trade businesses",
   "private": true,
@@ -48,7 +48,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/intelligent-assistant.git"
+    "url": "https://github.com/your-org/intelligent-admin.git"
   },
   "keywords": [
     "ai",

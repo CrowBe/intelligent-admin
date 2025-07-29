@@ -40,11 +40,13 @@ export const useFirebaseMessaging = () => {
         } else {
           setIsSupported(false);
           setError('Firebase messaging not supported or failed to initialize');
+          return undefined;
         }
       } catch (err) {
         console.error('Error initializing Firebase messaging:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
         setIsSupported(false);
+        return undefined;
       }
     };
 

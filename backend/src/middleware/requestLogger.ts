@@ -9,8 +9,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   res.end = function(...args: any[]) {
     const responseTime = Date.now() - start;
     logRequest(req, res, responseTime);
-    originalEnd.apply(res, args);
-  };
+    return originalEnd.apply(res, args);
+  } as any;
 
   next();
 };

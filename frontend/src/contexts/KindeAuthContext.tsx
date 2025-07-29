@@ -87,11 +87,11 @@ export function AppAuthProvider({ children }: { children: React.ReactNode }) {
         try {
           // Get access token
           const token = await getToken();
-          setAccessToken(token);
+          setAccessToken(token || null);
 
           // Get permissions (safely)
           try {
-            const userPermissions = getPermissions();
+            const userPermissions = await getPermissions();
             setPermissions(userPermissions?.permissions || []);
           } catch (err) {
             console.warn('Could not get user permissions:', err);
@@ -117,9 +117,9 @@ export function AppAuthProvider({ children }: { children: React.ReactNode }) {
           const newAppUser: AppUser = {
             id: kindeUser.id,
             email: kindeUser.email || '',
-            firstName: kindeUser.given_name || '',
-            lastName: kindeUser.family_name || '',
-            fullName: `${kindeUser.given_name || ''} ${kindeUser.family_name || ''}`.trim(),
+            firstName: kindeUser.givenName || '',
+            lastName: kindeUser.familyName || '',
+            fullName: `${kindeUser.givenName || ''} ${kindeUser.familyName || ''}`.trim(),
             picture: kindeUser.picture,
             // Initialize with default preferences - in real app, load from backend
             preferences: defaultPreferences,
@@ -177,8 +177,8 @@ export function AppAuthProvider({ children }: { children: React.ReactNode }) {
   const getAccessToken = async (): Promise<string | null> => {
     try {
       const token = await getToken();
-      setAccessToken(token);
-      return token;
+      setAccessToken(token || null);
+      return token || null;
     } catch (err) {
       console.error('Error getting access token:', err);
       setError(err instanceof Error ? err.message : 'Failed to get access token');
