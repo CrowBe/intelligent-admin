@@ -30,7 +30,7 @@ messaging.onBackgroundMessage(payload => {
     body: payload.notification?.body || 'You have a new notification',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: 'intelligent-assistant-notification',
+    tag: 'intelligent-admin-notification',
     requireInteraction: false,
     data: payload.data || {},
     actions: [

@@ -14,6 +14,7 @@ import { DashboardPage } from './pages/DashboardPage';
 
 // Components
 import { EmailIntelligenceDashboard } from './components/email/EmailIntelligenceDashboard';
+import { IndustryKnowledgeDashboard } from './components/industry/IndustryKnowledgeDashboard';
 
 // Auth
 import { useAppAuth } from './contexts/KindeAuthContext';
@@ -79,6 +80,17 @@ function App() {
                 <AuthGuard>
                   <AppShell>
                     <EmailIntelligenceDashboard />
+                  </AppShell>
+                </AuthGuard>
+              }
+            />
+            
+            <Route
+              path="/industry"
+              element={
+                <AuthGuard>
+                  <AppShell>
+                    <IndustryKnowledgeDashboard />
                   </AppShell>
                 </AuthGuard>
               }

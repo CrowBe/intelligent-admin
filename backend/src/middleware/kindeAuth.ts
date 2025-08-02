@@ -37,11 +37,10 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
+    return res.status(401).json({
       error: 'Unauthorized',
       message: 'No valid authorization header found',
     });
-    return;
   }
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -58,20 +57,18 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
     const decoded = jwt.decode(token) as KindeJWTPayload;
 
     if (!decoded || !decoded.sub || !decoded.email) {
-      res.status(401).json({
+      return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid token payload',
       });
-      return;
     }
 
     // Check if token is expired
     if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-      res.status(401).json({
+      return res.status(401).json({
         error: 'Unauthorized',
         message: 'Token has expired',
       });
-      return;
     }
 
     // Add user info to request
@@ -85,7 +82,7 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
 
     next();
   } catch (error) {
-    res.status(401).json({
+    return res.status(401).json({
       error: `error ${error}`,
       message: 'Failed to verify token',
     });
@@ -121,7 +118,7 @@ export const verifyKindeTokenOptional = asyncHandler(async (req: Request, res: R
     }
   } catch (error) {
     // Log error but continue without user info
-    res.status(401).json({
+    return res.status(401).json({
       error: `error ${error}`,
       message: 'Failed to verify token',
     });
@@ -136,22 +133,20 @@ export const verifyKindeTokenOptional = asyncHandler(async (req: Request, res: R
 export const requirePermissions = (requiredPermissions: string[]) => {
   return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      res.status(401).json({
+      return res.status(401).json({
         error: 'Unauthorized',
         message: 'Authentication required',
       });
-      return;
     }
 
     const userPermissions = req.user.permissions || [];
     const hasRequiredPermissions = requiredPermissions.every(permission => userPermissions.includes(permission));
 
     if (!hasRequiredPermissions) {
-      res.status(403).json({
+      return res.status(403).json({
         error: 'Forbidden',
         message: `Missing required permissions: ${requiredPermissions.join(', ')}`,
       });
-      return;
     }
 
     next();

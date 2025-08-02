@@ -14,6 +14,7 @@ import { userRoutes } from './routes/user.js';
 import { integrationRoutes } from './routes/integrations.js';
 import { documentRoutes } from './routes/documents.js';
 import { emailRoutes } from './routes/emails.js';
+import { industryRoutes } from './routes/industry.js';
 import { healthRoutes } from './routes/health.js';
 
 const app = express();
@@ -69,6 +70,7 @@ app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/emails', emailRoutes);
+app.use('/api/v1/industry', industryRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

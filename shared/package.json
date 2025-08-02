@@ -1,5 +1,5 @@
 {
-  "name": "intelligent-assistant-shared",
+  "name": "intelligent-admin-shared",
   "version": "0.1.0",
   "description": "Shared types and utilities for intelligent assistant",
   "private": true,

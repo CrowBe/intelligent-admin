@@ -20,6 +20,12 @@ const navigationItems = [
     description: 'AI email analysis'
   },
   { 
+    name: 'Industry Knowledge', 
+    href: '/industry', 
+    icon: '📚',
+    description: 'Trade regulations & standards'
+  },
+  { 
     name: 'Connections', 
     href: '/connections', 
     icon: '🔗',
@@ -93,7 +99,7 @@ export const Navigation: React.FC<NavigationProps> = ({ variant }) => {
 
   // Bottom Bar for Mobile
   return (
-    <nav className="bg-background border-t border-border px-4 py-2">
+    <nav className="bg-background/90 backdrop-blur-md border-t border-border px-4 py-2">
       <div className="flex justify-around">
         {navigationItems.map((item) => {
           const isActive = location.pathname === item.href;
