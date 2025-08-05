@@ -1,4 +1,12 @@
 import { logger } from '../utils/logger.js';
+import type { 
+  OllamaMessage, 
+  OllamaOptions, 
+  OllamaApiResponse, 
+  OllamaModelsResponse,
+  EmailAnalysisResult,
+  EmailSummary 
+} from '../types/ollama.js';
 
 /**
  * Ollama Service for Local LLM Integration
@@ -25,9 +33,9 @@ class OllamaService {
 
   private constructor() {
     this.config = {
-      baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-      model: process.env.OLLAMA_MODEL || 'gemma3:latest',
-      timeout: parseInt(process.env.OLLAMA_TIMEOUT || '30000'),
+      baseUrl: process.env['OLLAMA_BASE_URL'] || 'http://localhost:11434',
+      model: process.env['OLLAMA_MODEL'] || 'gemma3:latest',
+      timeout: parseInt(process.env['OLLAMA_TIMEOUT'] || '30000', 10),
     };
 
     this.checkAvailability();
@@ -51,8 +59,8 @@ class OllamaService {
       });
 
       if (response.ok) {
-        const data = (await response.json()) as { models?: Array<{ name: string }> };
-        const hasModel = data.models?.some((m: any) => m.name.includes(this.config.model.split(':')[0]));
+        const data = (await response.json()) as OllamaModelsResponse;
+        const hasModel = data.models?.some((m) => m.name.includes(this.config.model.split(':')[0]));
 
         if (hasModel) {
           this.isAvailable = true;
@@ -103,12 +111,8 @@ class OllamaService {
    * Generate chat completion using Ollama
    */
   async generateChatCompletion(
-    messages: Array<{ role: string; content: string }>,
-    options?: {
-      temperature?: number;
-      maxTokens?: number;
-      systemPrompt?: string;
-    }
+    messages: OllamaMessage[],
+    options?: OllamaOptions
   ): Promise<OllamaResponse> {
     if (!this.isAvailable) {
       throw new Error('Ollama service not available');
@@ -154,10 +158,7 @@ class OllamaService {
         throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = (await response.json()) as {
-        message?: { content: string };
-        eval_count?: number;
-      };
+      const data = (await response.json()) as OllamaApiResponse;
       const processingTime = Date.now() - startTime;
 
       return {
@@ -178,15 +179,7 @@ class OllamaService {
   async analyzeEmailContent(
     emailContent: string,
     context: string = ''
-  ): Promise<{
-    urgencyScore: number;
-    category: string;
-    businessRelevance: number;
-    sentiment: string;
-    actionRequired: boolean;
-    suggestedActions: string[];
-    reasoning: string;
-  }> {
+  ): Promise<EmailAnalysisResult> {
     const systemPrompt = `You are an AI assistant specializing in email analysis for Australian trade businesses.
     Analyze emails and provide structured responses in JSON format only.
 
@@ -220,7 +213,7 @@ Respond ONLY with valid JSON in this exact format:
       });
 
       // Parse JSON response
-      const analysis = JSON.parse(response.content);
+      const analysis = JSON.parse(response.content) as EmailAnalysisResult;
 
       // Validate response structure
       if (
@@ -252,8 +245,8 @@ Respond ONLY with valid JSON in this exact format:
    * Generate morning digest summary
    */
   async generateMorningDigest(
-    emailSummaries: Array<{ subject: string; snippet: string; priority: string }>,
-    userContext: any = {}
+    emailSummaries: EmailSummary[],
+    userContext: Record<string, any> = {}
   ): Promise<string> {
     const systemPrompt = `You are an executive assistant for Australian trade business owners.
     Create concise, actionable morning email digests that help prioritize the day's work.

@@ -273,7 +273,7 @@ export class ChatService {
           // Prepare messages for Ollama
           const ollamaMessages = [
             ...conversationHistory,
-            { role: 'user', content: data.content }
+            { role: 'user' as const, content: data.content }
           ];
           
           const ollamaResponse = await ollamaService.generateChatCompletion(
