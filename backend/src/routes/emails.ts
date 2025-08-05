@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { verifyKindeToken } from '../middleware/kindeAuth.js';
 import { EmailIntelligenceService, EmailSummary, UserEmailPreferences } from '../services/emailIntelligence.js';
+import { ollamaService } from '../services/ollamaService.js';
 
 const router = Router();
 
@@ -25,11 +26,10 @@ router.post('/analyze', asyncHandler(async (req, res) => {
   const { emails, preferences } = req.body;
   
   if (!emails || !Array.isArray(emails)) {
-    res.status(400).json({
+    return res.status(400).json({
       error: 'Bad Request',
       message: 'emails array is required'
     });
-    return;
   }
 
   // Validate email structure
@@ -38,11 +38,10 @@ router.post('/analyze', asyncHandler(async (req, res) => {
   );
 
   if (validEmails.length === 0) {
-    res.status(400).json({
+    return res.status(400).json({
       error: 'Bad Request',
       message: 'No valid emails provided'
     });
-    return;
   }
 
   // Convert date strings to Date objects
@@ -53,7 +52,7 @@ router.post('/analyze', asyncHandler(async (req, res) => {
   })) as EmailSummary[];
 
   // Analyze emails
-  const analyzedEmails = EmailIntelligenceService.analyzeEmails(emailsWithDates, preferences);
+  const analyzedEmails = await EmailIntelligenceService.analyzeEmails(emailsWithDates, preferences);
 
   res.json({
     success: true,
@@ -82,11 +81,10 @@ router.post('/digest', asyncHandler(async (req, res) => {
   const { emails, dateRange, preferences } = req.body;
   
   if (!emails || !Array.isArray(emails)) {
-    res.status(400).json({
+    return res.status(400).json({
       error: 'Bad Request',
       message: 'emails array is required'
     });
-    return;
   }
 
   // Convert and validate emails
@@ -97,7 +95,7 @@ router.post('/digest', asyncHandler(async (req, res) => {
   })) as EmailSummary[];
 
   // Analyze emails first
-  const analyzedEmails = EmailIntelligenceService.analyzeEmails(emailsWithDates, preferences);
+  const analyzedEmails = await EmailIntelligenceService.analyzeEmails(emailsWithDates, preferences);
 
   // Set default date range if not provided
   const digestDateRange = dateRange || {
@@ -106,7 +104,7 @@ router.post('/digest', asyncHandler(async (req, res) => {
   };
 
   // Generate digest
-  const digest = EmailIntelligenceService.generateMorningDigest(analyzedEmails, {
+  const digest = await EmailIntelligenceService.generateMorningDigest(analyzedEmails, {
     from: new Date(digestDateRange.from),
     to: new Date(digestDateRange.to)
   });
@@ -132,7 +130,7 @@ router.get('/preferences', asyncHandler(async (req, res) => {
   // TODO: Implement user preferences storage
   // For now, return default preferences
   const defaultPreferences: UserEmailPreferences = {
-    userId: req.user!.id,
+    userId: req.user?.id || 'test-user',
     urgentKeywords: ['emergency', 'urgent', 'asap', 'critical'],
     businessKeywords: ['quote', 'estimate', 'invoice', 'payment', 'service'],
     spamKeywords: ['congratulations you won', 'click here now', 'limited time offer'],
@@ -168,11 +166,10 @@ router.put('/preferences', asyncHandler(async (req, res) => {
   
   // Validate preferences structure
   if (!preferences || typeof preferences !== 'object') {
-    res.status(400).json({
+    return res.status(400).json({
       error: 'Bad Request',
       message: 'Valid preferences object is required'
     });
-    return;
   }
 
   // For now, just return the updated preferences
@@ -182,8 +179,30 @@ router.put('/preferences', asyncHandler(async (req, res) => {
     message: 'Preferences updated successfully',
     data: {
       ...preferences,
-      userId: req.user!.id,
+      userId: req.user?.id || 'test-user',
       updatedAt: new Date().toISOString()
+    }
+  });
+}));
+
+// GET /api/v1/emails/ai-status
+// Get AI service availability status
+router.get('/ai-status', asyncHandler(async (req, res) => {
+  const ollamaStats = ollamaService.getStats();
+  
+  res.json({
+    success: true,
+    data: {
+      ollama: {
+        available: ollamaStats.isAvailable,
+        model: ollamaStats.model,
+        baseUrl: ollamaStats.baseUrl
+      },
+      openai: {
+        available: !!process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+      },
+      currentStrategy: ollamaStats.isAvailable ? 'ollama-primary' : 'openai-primary'
     }
   });
 }));

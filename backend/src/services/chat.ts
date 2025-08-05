@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { getOpenAIService, ChatMessage, SYSTEM_PROMPTS } from './openai.js';
+import { industryKnowledgeService, IndustryContext } from './industryKnowledge.js';
+import { conversationIntelligenceService } from './conversationIntelligence.js';
+import { ollamaService } from './ollamaService.js';
 import { logger } from '../utils/logger.js';
 import { CustomError } from '../middleware/errorHandler.js';
 
@@ -233,30 +236,118 @@ export class ChatService {
       // Parse session context
       const contextData = JSON.parse(session.contextData);
 
+      // Analyze conversation for business context discovery
+      const conversationAnalysis = await conversationIntelligenceService.analyzeForBusinessContext(
+        data.userId,
+        data.content,
+        conversationHistory
+      );
+
+      // Get relevant industry context
+      const industryContext = await this.getIndustryContext(data.content, contextData);
+
       // Determine system prompt based on context
       let systemPrompt = SYSTEM_PROMPTS.default;
       if (contextData.businessType) {
         systemPrompt += `\n\nUser's business type: ${contextData.businessType}`;
       }
 
-      // Generate AI response
-      const openaiService = getOpenAIService();
-      const messages = openaiService.buildChatMessages(
-        data.content,
-        conversationHistory,
-        systemPrompt,
-        contextData
-      );
+      // Add discovered business context to system prompt
+      if (conversationAnalysis.contextClues.length > 0) {
+        systemPrompt += this.buildBusinessContextPrompt(conversationAnalysis.contextClues);
+      }
 
-      const aiResponse = await openaiService.chatCompletion({
-        messages,
-        temperature: 0.7,
-      });
+      // Add industry knowledge context
+      if (industryContext) {
+        systemPrompt += this.buildIndustryContextPrompt(industryContext);
+      }
 
-      // Generate suggestions
-      const suggestions = await openaiService.generateSuggestions(
-        [...conversationHistory, { role: 'user', content: data.content }],
-        contextData
+      // Generate AI response - try Ollama first, fallback to OpenAI
+      let aiResponse: any;
+      let suggestions: string[] = [];
+      
+      if (ollamaService.getAvailability()) {
+        try {
+          logger.info('Using Ollama for chat completion');
+          
+          // Prepare messages for Ollama
+          const ollamaMessages = [
+            ...conversationHistory,
+            { role: 'user' as const, content: data.content }
+          ];
+          
+          const ollamaResponse = await ollamaService.generateChatCompletion(
+            ollamaMessages,
+            { 
+              systemPrompt,
+              temperature: 0.7,
+              maxTokens: 2048
+            }
+          );
+          
+          aiResponse = {
+            content: ollamaResponse.content,
+            model: ollamaResponse.model,
+            finishReason: 'stop',
+            tokenUsage: {
+              promptTokens: 0,
+              completionTokens: ollamaResponse.tokens,
+              totalTokens: ollamaResponse.tokens
+            },
+            processingTime: ollamaResponse.processingTime
+          };
+          
+          // Simple rule-based suggestions for Ollama
+          suggestions = this.generateSimpleSuggestions(data.content, conversationHistory);
+          
+        } catch (error) {
+          logger.warn('Ollama chat completion failed, falling back to OpenAI:', error);
+          
+          // Fallback to OpenAI
+          const openaiService = getOpenAIService();
+          const messages = openaiService.buildChatMessages(
+            data.content,
+            conversationHistory,
+            systemPrompt,
+            contextData
+          );
+
+          aiResponse = await openaiService.chatCompletion({
+            messages,
+            temperature: 0.7,
+          });
+
+          suggestions = await openaiService.generateSuggestions(
+            [...conversationHistory, { role: 'user', content: data.content }],
+            contextData
+          );
+        }
+      } else {
+        // Use OpenAI directly
+        const openaiService = getOpenAIService();
+        const messages = openaiService.buildChatMessages(
+          data.content,
+          conversationHistory,
+          systemPrompt,
+          contextData
+        );
+
+        aiResponse = await openaiService.chatCompletion({
+          messages,
+          temperature: 0.7,
+        });
+
+        suggestions = await openaiService.generateSuggestions(
+          [...conversationHistory, { role: 'user', content: data.content }],
+          contextData
+        );
+      }
+
+      // Enhance response with conversation intelligence
+      const enhancedContent = await conversationIntelligenceService.enhanceResponse(
+        data.userId,
+        aiResponse.content,
+        conversationAnalysis
       );
 
       // Save AI response
@@ -264,11 +355,13 @@ export class ChatService {
         data: {
           sessionId: data.sessionId,
           role: 'assistant',
-          content: aiResponse.content,
+          content: enhancedContent,
           metadata: JSON.stringify({
             suggestions,
             model: aiResponse.model,
             finishReason: aiResponse.finishReason,
+            contextClues: conversationAnalysis.contextClues,
+            smartSuggestions: conversationAnalysis.suggestions,
           }),
           tokenCount: aiResponse.tokenUsage.totalTokens,
           processingTimeMs: aiResponse.processingTime,
@@ -297,7 +390,7 @@ export class ChatService {
 
       return {
         messageId: assistantMessage.id,
-        content: aiResponse.content,
+        content: enhancedContent,
         suggestions,
         processingTime: totalProcessingTime,
         tokenUsage: aiResponse.tokenUsage,
@@ -444,6 +537,180 @@ export class ChatService {
       });
       throw new CustomError('Failed to retrieve chat statistics', 500);
     }
+  }
+
+  /**
+   * Get relevant industry context for a user message
+   */
+  private async getIndustryContext(
+    message: string, 
+    sessionContext: Record<string, any>
+  ): Promise<IndustryContext | null> {
+    try {
+      // Only fetch industry context for messages that might benefit from it
+      if (!this.needsIndustryContext(message)) {
+        return null;
+      }
+
+      // Get industry context based on message content
+      return await industryKnowledgeService.getIndustryContext(message, 5);
+    } catch (error) {
+      logger.error('Failed to get industry context:', error);
+      return null; // Fail gracefully
+    }
+  }
+
+  /**
+   * Determine if a message needs industry context
+   */
+  private needsIndustryContext(message: string): boolean {
+    const industryKeywords = [
+      // Electrical terms
+      'electrical', 'wiring', 'voltage', 'current', 'circuit', 'switchboard',
+      'cable', 'conduit', 'earthing', 'testing', 'installation', 'meter',
+      // Regulations and standards
+      'regulation', 'standard', 'compliance', 'as/nzs', 'esv', 'safety',
+      'code', 'requirement', 'certification', 'license',
+      // Business terms
+      'pricing', 'quote', 'estimate', 'cost', 'price', 'invoice',
+      'customer', 'client', 'job', 'project', 'service'
+    ];
+
+    const messageLower = message.toLowerCase();
+    return industryKeywords.some(keyword => messageLower.includes(keyword));
+  }
+
+  /**
+   * Build industry context prompt addition
+   */
+  private buildIndustryContextPrompt(context: IndustryContext): string {
+    let contextPrompt = '\n\n--- RELEVANT INDUSTRY KNOWLEDGE ---\n';
+
+    // Add regulations
+    if (context.regulations.length > 0) {
+      contextPrompt += '\nREGULATIONS:\n';
+      context.regulations.forEach(item => {
+        contextPrompt += `- ${item.title}: ${item.content.substring(0, 200)}...\n`;
+      });
+    }
+
+    // Add standards
+    if (context.standards.length > 0) {
+      contextPrompt += '\nSTANDARDS:\n';
+      context.standards.forEach(item => {
+        contextPrompt += `- ${item.title}: ${item.content.substring(0, 200)}...\n`;
+      });
+    }
+
+    // Add safety information
+    if (context.safety.length > 0) {
+      contextPrompt += '\nSAFETY REQUIREMENTS:\n';
+      context.safety.forEach(item => {
+        contextPrompt += `- ${item.title}: ${item.content.substring(0, 200)}...\n`;
+      });
+    }
+
+    // Add pricing guidance
+    if (context.pricing.length > 0) {
+      contextPrompt += '\nPRICING GUIDANCE:\n';
+      context.pricing.forEach(item => {
+        contextPrompt += `- ${item.title}: ${item.content.substring(0, 200)}...\n`;
+      });
+    }
+
+    contextPrompt += '\nPlease reference this industry knowledge when providing responses. ';
+    contextPrompt += 'Always prioritize safety and compliance requirements. ';
+    contextPrompt += 'Provide specific regulation or standard references when applicable.\n';
+    contextPrompt += '--- END INDUSTRY KNOWLEDGE ---\n';
+
+    return contextPrompt;
+  }
+
+  /**
+   * Build business context prompt addition from discovered clues
+   */
+  private buildBusinessContextPrompt(contextClues: Array<{type: string, value: string, confidence: number, evidence: string}>): string {
+    let contextPrompt = '\n\n--- DISCOVERED BUSINESS CONTEXT ---\n';
+
+    // Group clues by type
+    const cluesByType = contextClues.reduce((acc, clue) => {
+      if (!acc[clue.type]) acc[clue.type] = [];
+      acc[clue.type].push(clue);
+      return acc;
+    }, {} as Record<string, typeof contextClues>);
+
+    // Add industry context
+    if (cluesByType.industry) {
+      const industryClue = cluesByType.industry.sort((a, b) => b.confidence - a.confidence)[0];
+      contextPrompt += `\nINDUSTRY: User appears to work in ${industryClue.value} (confidence: ${Math.round(industryClue.confidence * 100)}%)\n`;
+      contextPrompt += `Evidence: ${industryClue.evidence}\n`;
+    }
+
+    // Add location context
+    if (cluesByType.location) {
+      const locationClue = cluesByType.location.sort((a, b) => b.confidence - a.confidence)[0];
+      contextPrompt += `\nLOCATION: User appears to be in ${locationClue.value} (confidence: ${Math.round(locationClue.confidence * 100)}%)\n`;
+      contextPrompt += `Evidence: ${locationClue.evidence}\n`;
+    }
+
+    // Add service type context
+    if (cluesByType.service_type) {
+      const serviceClue = cluesByType.service_type.sort((a, b) => b.confidence - a.confidence)[0];
+      contextPrompt += `\nSERVICE TYPE: User appears to work on ${serviceClue.value} projects (confidence: ${Math.round(serviceClue.confidence * 100)}%)\n`;
+      contextPrompt += `Evidence: ${serviceClue.evidence}\n`;
+    }
+
+    // Add work scale context
+    if (cluesByType.work_scale) {
+      const scaleClue = cluesByType.work_scale.sort((a, b) => b.confidence - a.confidence)[0];
+      contextPrompt += `\nWORK SCALE: User appears to handle ${scaleClue.value.replace('_', ' ')} (confidence: ${Math.round(scaleClue.confidence * 100)}%)\n`;
+      contextPrompt += `Evidence: ${scaleClue.evidence}\n`;
+    }
+
+    contextPrompt += '\nUse this context to provide more relevant and specific guidance. ';
+    contextPrompt += 'Ask natural follow-up questions to confirm or discover additional context. ';
+    contextPrompt += 'Suggest relevant standards and regulations based on discovered context.\n';
+    contextPrompt += '--- END BUSINESS CONTEXT ---\n';
+
+    return contextPrompt;
+  }
+  
+  /**
+   * Generate simple rule-based suggestions when using Ollama
+   */
+  private generateSimpleSuggestions(userMessage: string, conversationHistory: ChatMessage[]): string[] {
+    const suggestions: string[] = [];
+    const content = userMessage.toLowerCase();
+    
+    // Electrical work suggestions
+    if (content.includes('electrical') || content.includes('wiring') || content.includes('voltage')) {
+      suggestions.push('Tell me more about the electrical regulations');
+      suggestions.push('What safety standards apply?');
+      suggestions.push('Help with AS/NZS 3000 requirements');
+    }
+    
+    // Quote/pricing suggestions
+    if (content.includes('quote') || content.includes('price') || content.includes('cost')) {
+      suggestions.push('Help me create a detailed quote');
+      suggestions.push('What should I include in pricing?');
+      suggestions.push('Show me similar project costs');
+    }
+    
+    // Job/project suggestions
+    if (content.includes('job') || content.includes('project') || content.includes('work')) {
+      suggestions.push('Help plan this project');
+      suggestions.push('What permits might I need?');
+      suggestions.push('Timeline and scheduling advice');
+    }
+    
+    // General business suggestions
+    if (suggestions.length === 0) {
+      suggestions.push('Tell me more about your business');
+      suggestions.push('What regulations should I know?');
+      suggestions.push('Help with industry standards');
+    }
+    
+    return suggestions.slice(0, 3);
   }
 }
 

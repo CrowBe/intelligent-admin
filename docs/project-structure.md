@@ -4,7 +4,7 @@
 
 ### Simplified Layout
 ```
-intelligent-assistant/
+intelligent-admin/
 ├── README.md
 ├── CLAUDE.md                    # Claude Code instructions
 ├── package.json                 # Root package.json with workspaces

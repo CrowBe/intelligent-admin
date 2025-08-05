@@ -35,10 +35,10 @@
       "@/services/*": ["./src/services/*"],
       "@/types/*": ["./src/types/*"],
       "@/utils/*": ["./src/utils/*"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/dist/*"]
     }
   },
-  "include": ["src", "../shared/src"],
+  "include": ["src"],
   "exclude": [],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,5 +1,7 @@
 // Email Intelligence Service
 // Backend service for analyzing emails and generating insights
+import { ollamaService } from './ollamaService.js';
+import { logger } from '../utils/logger.js';
 
 export interface EmailSummary {
   id: string;
@@ -96,17 +98,100 @@ export class EmailIntelligenceService {
   /**
    * Analyze a batch of emails and return analysis results
    */
-  static analyzeEmails(emails: EmailSummary[], preferences?: UserEmailPreferences): Array<EmailSummary & { analysis: EmailAnalysis }> {
-    return emails.map(email => ({
-      ...email,
-      analysis: this.analyzeEmail(email, preferences)
-    }));
+  static async analyzeEmails(emails: EmailSummary[], preferences?: UserEmailPreferences): Promise<Array<EmailSummary & { analysis: EmailAnalysis }>> {
+    const results = [];
+    
+    for (const email of emails) {
+      const analysis = await this.analyzeEmail(email, preferences);
+      results.push({ ...email, analysis });
+    }
+    
+    return results;
   }
 
   /**
    * Analyze a single email and determine priority, category, and insights
    */
-  private static analyzeEmail(email: EmailSummary, preferences?: UserEmailPreferences): EmailAnalysis {
+  private static async analyzeEmail(email: EmailSummary, preferences?: UserEmailPreferences): Promise<EmailAnalysis> {
+    const content = `${email.subject} ${email.snippet}`;
+    
+    // Try Ollama AI analysis first if available
+    if (ollamaService.getAvailability()) {
+      try {
+        const aiAnalysis = await ollamaService.analyzeEmailContent(content);
+        
+        // Combine AI analysis with rule-based enhancements
+        const enhancedAnalysis = this.enhanceAIAnalysis(aiAnalysis, email, preferences);
+        
+        logger.info('Email analyzed using Ollama AI', {
+          emailId: email.id,
+          urgencyScore: enhancedAnalysis.urgencyScore,
+          category: enhancedAnalysis.category
+        });
+        
+        return enhancedAnalysis;
+      } catch (error) {
+        logger.warn('Ollama analysis failed, falling back to rule-based:', error);
+      }
+    }
+    
+    // Fallback to rule-based analysis
+    return this.ruleBasedAnalysis(email, preferences);
+  }
+  
+  /**
+   * Enhanced AI analysis with rule-based improvements
+   */
+  private static enhanceAIAnalysis(
+    aiAnalysis: any, 
+    email: EmailSummary, 
+    preferences?: UserEmailPreferences
+  ): EmailAnalysis {
+    const content = `${email.subject} ${email.snippet}`.toLowerCase();
+    
+    // Apply user preferences to AI analysis
+    let adjustedUrgencyScore = aiAnalysis.urgencyScore;
+    
+    // Check sender priority rules
+    const fromRule = preferences?.priorityRules?.fromAddresses?.find(
+      rule => rule.email.toLowerCase() === email.from.toLowerCase()
+    );
+    if (fromRule) {
+      switch (fromRule.priority) {
+        case 'urgent': adjustedUrgencyScore = Math.max(adjustedUrgencyScore, 80); break;
+        case 'high': adjustedUrgencyScore = Math.max(adjustedUrgencyScore, 60); break;
+        case 'medium': adjustedUrgencyScore = Math.max(adjustedUrgencyScore, 40); break;
+        case 'low': adjustedUrgencyScore = Math.min(adjustedUrgencyScore, 30); break;
+      }
+    }
+    
+    // Custom urgent keywords from user preferences
+    preferences?.urgentKeywords?.forEach(keyword => {
+      if (content.includes(keyword.toLowerCase())) {
+        adjustedUrgencyScore = Math.max(adjustedUrgencyScore, 75);
+      }
+    });
+    
+    // Determine priority based on adjusted urgency score
+    const priority = this.determinePriority(adjustedUrgencyScore, email, preferences);
+    
+    return {
+      id: email.id,
+      priority,
+      category: aiAnalysis.category,
+      urgencyScore: adjustedUrgencyScore,
+      actionRequired: aiAnalysis.actionRequired,
+      suggestedActions: aiAnalysis.suggestedActions || [],
+      reasoning: aiAnalysis.reasoning,
+      businessRelevance: aiAnalysis.businessRelevance,
+      sentiment: aiAnalysis.sentiment
+    };
+  }
+  
+  /**
+   * Rule-based analysis fallback
+   */
+  private static ruleBasedAnalysis(email: EmailSummary, preferences?: UserEmailPreferences): EmailAnalysis {
     const content = `${email.subject} ${email.snippet}`.toLowerCase();
     
     // Calculate urgency score
@@ -388,10 +473,11 @@ export class EmailIntelligenceService {
   /**
    * Generate morning digest from analyzed emails
    */
-  static generateMorningDigest(
+  static async generateMorningDigest(
     analyzedEmails: Array<EmailSummary & { analysis: EmailAnalysis }>,
-    dateRange: { from: Date; to: Date }
-  ): MorningDigest {
+    dateRange: { from: Date; to: Date },
+    userContext?: any
+  ): Promise<MorningDigest> {
     // Calculate summary statistics
     const summary = {
       totalEmails: analyzedEmails.length,
@@ -424,8 +510,8 @@ export class EmailIntelligenceService {
       .slice(0, 10);
 
     // Generate business insights and recommendations
-    const businessInsights = this.generateBusinessInsights(summary, analyzedEmails);
-    const recommendations = this.generateRecommendations(summary, analyzedEmails);
+    const businessInsights = await this.generateBusinessInsights(summary, analyzedEmails, userContext);
+    const recommendations = await this.generateRecommendations(summary, analyzedEmails, userContext);
 
     return {
       generatedAt: new Date(),
@@ -442,7 +528,37 @@ export class EmailIntelligenceService {
   /**
    * Generate business insights from email analysis
    */
-  private static generateBusinessInsights(summary: any, emails: Array<EmailSummary & { analysis: EmailAnalysis }>): string[] {
+  private static async generateBusinessInsights(
+    summary: any, 
+    emails: Array<EmailSummary & { analysis: EmailAnalysis }>,
+    userContext?: any
+  ): Promise<string[]> {
+    // Try Ollama AI insights first
+    if (ollamaService.getAvailability()) {
+      try {
+        const emailSummaries = emails.slice(0, 15).map(email => ({
+          subject: email.subject,
+          snippet: email.snippet,
+          priority: email.analysis.priority
+        }));
+        
+        const aiDigest = await ollamaService.generateMorningDigest(emailSummaries, userContext);
+        
+        // Extract insights from AI digest
+        const lines = aiDigest.split('\n').filter(line => line.trim());
+        const insights = lines
+          .filter(line => line.includes('insight') || line.includes('pattern') || line.includes('trend'))
+          .slice(0, 3);
+          
+        if (insights.length > 0) {
+          return insights.map(insight => `🤖 ${insight.replace(/^[•\-*]\s*/, '')}`);
+        }
+      } catch (error) {
+        logger.warn('AI insights generation failed, using rule-based:', error);
+      }
+    }
+    
+    // Fallback to rule-based insights
     const insights: string[] = [];
 
     // Email volume insights
@@ -470,7 +586,42 @@ export class EmailIntelligenceService {
   /**
    * Generate actionable recommendations
    */
-  private static generateRecommendations(summary: any, emails: Array<EmailSummary & { analysis: EmailAnalysis }>): string[] {
+  private static async generateRecommendations(
+    summary: any, 
+    emails: Array<EmailSummary & { analysis: EmailAnalysis }>,
+    userContext?: any
+  ): Promise<string[]> {
+    // Try AI-generated recommendations
+    if (ollamaService.getAvailability()) {
+      try {
+        const emailSummaries = emails.slice(0, 15).map(email => ({
+          subject: email.subject,
+          snippet: email.snippet,
+          priority: email.analysis.priority
+        }));
+        
+        const aiDigest = await ollamaService.generateMorningDigest(emailSummaries, userContext);
+        
+        // Extract recommendations from AI digest
+        const lines = aiDigest.split('\n').filter(line => line.trim());
+        const recommendations = lines
+          .filter(line => 
+            line.includes('recommend') || 
+            line.includes('suggest') || 
+            line.includes('should') ||
+            line.includes('consider')
+          )
+          .slice(0, 4);
+          
+        if (recommendations.length > 0) {
+          return recommendations.map(rec => `🤖 ${rec.replace(/^[•\-*]\s*/, '')}`);
+        }
+      } catch (error) {
+        logger.warn('AI recommendations generation failed, using rule-based:', error);
+      }
+    }
+    
+    // Fallback to rule-based recommendations
     const recommendations: string[] = [];
 
     // Priority-based recommendations
