@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { getOpenAIService, ChatMessage, SYSTEM_PROMPTS } from './openai.js';
 import { industryKnowledgeService, IndustryContext } from './industryKnowledge.js';
 import { conversationIntelligenceService } from './conversationIntelligence.js';
+import { proactiveDocumentRequestsService, DocumentSuggestion } from './proactiveDocumentRequests.js';
+import { workflowAdaptationService, WorkflowAdaptation } from './workflowAdaptation.js';
 import { ollamaService } from './ollamaService.js';
 import { logger } from '../utils/logger.js';
 import { CustomError } from '../middleware/errorHandler.js';
@@ -26,6 +28,8 @@ export interface ChatResponse {
   messageId: string;
   content: string;
   suggestions?: string[];
+  documentSuggestions?: DocumentSuggestion[];
+  workflowAdaptations?: WorkflowAdaptation[];
   processingTime: number;
   tokenUsage?: {
     promptTokens: number;
@@ -243,6 +247,16 @@ export class ChatService {
         conversationHistory
       );
 
+      // Get document suggestions based on conversation content
+      const documentSuggestions = await proactiveDocumentRequestsService.analyzeMessageForDocumentRequests(
+        data.userId,
+        data.content,
+        data.sessionId
+      );
+
+      // Get workflow adaptations for this user
+      const workflowAdaptations = await workflowAdaptationService.getWorkflowAdaptations(data.userId);
+
       // Get relevant industry context
       const industryContext = await this.getIndustryContext(data.content, contextData);
 
@@ -260,6 +274,16 @@ export class ChatService {
       // Add industry knowledge context
       if (industryContext) {
         systemPrompt += this.buildIndustryContextPrompt(industryContext);
+      }
+
+      // Add workflow adaptation context
+      if (workflowAdaptations.length > 0) {
+        systemPrompt += this.buildWorkflowAdaptationPrompt(workflowAdaptations);
+      }
+
+      // Add document suggestions context
+      if (documentSuggestions.length > 0) {
+        systemPrompt += this.buildDocumentSuggestionsPrompt(documentSuggestions);
       }
 
       // Generate AI response - try Ollama first, fallback to OpenAI
@@ -358,6 +382,8 @@ export class ChatService {
           content: enhancedContent,
           metadata: JSON.stringify({
             suggestions,
+            documentSuggestions,
+            workflowAdaptations,
             model: aiResponse.model,
             finishReason: aiResponse.finishReason,
             contextClues: conversationAnalysis.contextClues,
@@ -392,6 +418,8 @@ export class ChatService {
         messageId: assistantMessage.id,
         content: enhancedContent,
         suggestions,
+        documentSuggestions,
+        workflowAdaptations,
         processingTime: totalProcessingTime,
         tokenUsage: aiResponse.tokenUsage,
       };
@@ -711,6 +739,63 @@ export class ChatService {
     }
     
     return suggestions.slice(0, 3);
+  }
+
+  /**
+   * Build workflow adaptation prompt addition
+   */
+  private buildWorkflowAdaptationPrompt(adaptations: WorkflowAdaptation[]): string {
+    let contextPrompt = '\n\n--- WORKFLOW ADAPTATIONS ---\n';
+
+    adaptations.forEach(adaptation => {
+      switch (adaptation.type) {
+        case 'follow_up_timing':
+          contextPrompt += `\nFOLLOW-UP TIMING: ${adaptation.recommendation}\n`;
+          contextPrompt += `Confidence: ${Math.round(adaptation.confidence * 100)}%\n`;
+          break;
+
+        case 'communication_tone':
+          contextPrompt += `\nCOMMUNICATION TONE: ${adaptation.recommendation}\n`;
+          contextPrompt += `Confidence: ${Math.round(adaptation.confidence * 100)}%\n`;
+          break;
+
+        case 'task_batching':
+          contextPrompt += `\nTASK BATCHING: ${adaptation.recommendation}\n`;
+          contextPrompt += `Confidence: ${Math.round(adaptation.confidence * 100)}%\n`;
+          break;
+
+        case 'priority_weighting':
+          contextPrompt += `\nPRIORITY WEIGHTING: ${adaptation.recommendation}\n`;
+          contextPrompt += `Confidence: ${Math.round(adaptation.confidence * 100)}%\n`;
+          break;
+      }
+    });
+
+    contextPrompt += '\nApply these learned preferences when providing guidance and suggestions.\n';
+    contextPrompt += '--- END WORKFLOW ADAPTATIONS ---\n';
+
+    return contextPrompt;
+  }
+
+  /**
+   * Build document suggestions prompt addition
+   */
+  private buildDocumentSuggestionsPrompt(suggestions: DocumentSuggestion[]): string {
+    let contextPrompt = '\n\n--- DOCUMENT SUGGESTIONS ---\n';
+
+    contextPrompt += 'Based on the conversation, the following documents may be helpful:\n\n';
+
+    suggestions.forEach((suggestion, index) => {
+      contextPrompt += `${index + 1}. ${suggestion.type.replace('_', ' ').toUpperCase()} (${suggestion.priority} priority)\n`;
+      contextPrompt += `   Reason: ${suggestion.reason}\n`;
+      contextPrompt += `   Message: ${suggestion.message}\n\n`;
+    });
+
+    contextPrompt += 'You should mention these document suggestions naturally in your response when appropriate.\n';
+    contextPrompt += 'Focus on the high-priority suggestions first.\n';
+    contextPrompt += '--- END DOCUMENT SUGGESTIONS ---\n';
+
+    return contextPrompt;
   }
 }
 
