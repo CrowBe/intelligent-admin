@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
@@ -6,14 +6,23 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies 
+RUN npm install
 
-# Copy source code
+# Copy source code (excluding node_modules)
 COPY . .
+
+# Create a startup script to handle node_modules
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'if [ ! -d "/app/node_modules" ] || [ -z "$(ls -A /app/node_modules 2>/dev/null)" ]; then' >> /start.sh && \
+    echo '  echo "Installing dependencies..."' >> /start.sh && \
+    echo '  npm install' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo 'exec npm run dev -- --host 0.0.0.0' >> /start.sh && \
+    chmod +x /start.sh
 
 # Expose port
 EXPOSE 5173
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start development server with dependency check
+CMD ["/start.sh"]

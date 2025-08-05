@@ -1,8 +1,8 @@
--- Initialize database for intelligent assistant
+-- Initialize database for intelligent admin
 -- This script runs when the PostgreSQL container starts
 
 -- Create database if it doesn't exist (though it's created by environment variables)
--- CREATE DATABASE IF NOT EXISTS intelligent_assistant_dev;
+-- CREATE DATABASE IF NOT EXISTS intelligent_admin_dev;
 
 -- Create extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

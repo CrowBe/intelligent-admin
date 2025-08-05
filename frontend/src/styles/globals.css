@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "./themes.css";
+
+* {
+  border-color: hsl(var(--color-border));
+}
+
+body {
+  background-color: hsl(var(--color-background));
+  color: hsl(var(--color-foreground));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Custom utility classes for email priorities */
+.text-urgent {
+  color: hsl(var(--color-urgent));
+}
+.bg-urgent {
+  background-color: hsl(var(--color-urgent));
+}
+.text-urgent-foreground {
+  color: hsl(var(--color-urgent-foreground));
+}
+.border-urgent {
+  border-color: hsl(var(--color-urgent));
+}
+
+.text-high {
+  color: hsl(var(--color-high));
+}
+.bg-high {
+  background-color: hsl(var(--color-high));
+}
+.text-high-foreground {
+  color: hsl(var(--color-high-foreground));
+}
+.border-high {
+  border-color: hsl(var(--color-high));
+}
+
+.text-medium {
+  color: hsl(var(--color-medium));
+}
+.bg-medium {
+  background-color: hsl(var(--color-medium));
+}
+.text-medium-foreground {
+  color: hsl(var(--color-medium-foreground));
+}
+.border-medium {
+  border-color: hsl(var(--color-medium));
+}
+
+.text-low {
+  color: hsl(var(--color-low));
+}
+.bg-low {
+  background-color: hsl(var(--color-low));
+}
+.text-low-foreground {
+  color: hsl(var(--color-low-foreground));
+}
+.border-low {
+  border-color: hsl(var(--color-low));
+}
+
+/* Utility Classes */
+.text-balance {
+  text-wrap: balance;
+}

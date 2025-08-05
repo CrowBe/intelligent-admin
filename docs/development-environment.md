@@ -27,8 +27,8 @@
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/your-org/intelligent-assistant.git
-cd intelligent-assistant
+git clone https://github.com/your-org/intelligent-admin.git
+cd intelligent-admin
 ```
 
 ### 2. Environment Configuration
@@ -436,7 +436,7 @@ pnpm install  # Instead of npm install
 #### Database Performance
 ```sql
 -- Add development indexes
-CREATE INDEX CONCURRENTLY idx_dev_messages_session_timestamp 
+CREATE INDEX CONCURRENTLY idx_dev_messages_session_timestamp
 ON messages(session_id, timestamp);
 
 -- Analyze tables for better query planning
