@@ -58,3 +58,125 @@ model CrawlLog {
   startedAt DateTime @default(now())
   finishedAt DateTime?
 }
+
+// Phase 2A: Notification Management
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // morning_brief, urgent_email, task_reminder, etc.
+  enabled           Boolean  @default(true)
+  timingPreferences Json?    // {startHour, startMinute, endHour, endMinute, timezone, daysOfWeek}
+  channels          Json?    // {push: true, email: false, sms: false}
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+model NotificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   // web, ios, android
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+model NotificationLog {
+  id       String    @id @default(cuid())
+  userId   String
+  type     String    // notification type
+  title    String
+  body     String
+  data     Json?
+  channel  String    // push, email, sms
+  status   String    // pending, sent, delivered, failed, read
+  sentAt   DateTime?
+  readAt   DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
+// Phase 2A: Email Analysis
+model EmailAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  emailId           String   @unique
+  subject           String
+  sender            String
+  snippet           String
+  priority          String   // urgent, high, medium, low
+  category          String   // urgent, standard, follow-up, admin, spam
+  urgencyScore      Float
+  businessRelevance Float
+  actionRequired    Boolean
+  keywords          String[]
+  suggestedActions  String[]
+  reasoning         String
+  notificationSent  Boolean  @default(false)
+  analyzedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([priority])
+  @@index([category])
+}
+
+// Phase 2A: Onboarding
+model OnboardingProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  step        String    // welcome, business_profile, gmail_connect, etc.
+  completedAt DateTime?
+  skipped     Boolean   @default(false)
+  data        Json?     // Step-specific data
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, step])
+  @@index([userId])
+}
+
+// User preferences and business profile
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessProfile Json?    // Business name, type, size, etc.
+  preferences     Json     // General preferences
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Tasks for reminders
+model Task {
+  id           String    @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  status       String    @default("pending") // pending, completed, cancelled
+  dueDate      DateTime
+  reminderSent Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// Placeholder for User model (if not exists)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
