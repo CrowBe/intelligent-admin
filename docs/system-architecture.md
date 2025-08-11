@@ -10,7 +10,7 @@ This document defines the complete system architecture for the AI-powered admini
 - Frontend: Single React application with chat interface
 - Backend: Express.js API server with modular routes  
 - MCP Integration Layer: Built-in MCP agent management and execution
-- Database: SQLite initially, PostgreSQL for scale
+- Database: PostgreSQL for development and production
 - External Services: OpenAI API, OAuth providers, MCP servers
 
 ## Technology Stack Decisions
@@ -39,10 +39,10 @@ This document defines the complete system architecture for the AI-powered admini
 - **MCP Orchestration**: AI-driven selection and coordination of MCP agents
 
 ### Database
-- **Development Database**: SQLite with Prisma ORM
-  - Simple file-based storage for rapid development
-  - Easy setup and deployment
-- **Production Database**: PostgreSQL 15+ (migration path planned)
+- **Database**: PostgreSQL 15+ with Prisma ORM
+  - User profiles and business data
+  - Authentication tokens (encrypted)
+  - Chat history and context
   - User profiles and business data
   - Authentication tokens (encrypted)
   - Chat history and context

@@ -40,11 +40,11 @@ pids/
 *.seed
 *.pid.lock
 
-# Database files
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
+# Database files (legacy SQLite - we use PostgreSQL now)
+# *.db
+# *.db-journal
+# *.sqlite
+# *.sqlite3
 
 # Prisma
 /prisma/generated

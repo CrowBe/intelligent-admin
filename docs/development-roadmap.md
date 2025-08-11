@@ -21,7 +21,7 @@ Based on user story analysis, Phase 1 has been expanded to include critical enga
 - [ ] Configure TypeScript, ESLint, Prettier
 - [ ] Create basic React frontend with chat interface
 - [ ] Set up Express.js backend with modular routes
-- [ ] Implement PostgreSQL database with Prisma ORM (upgraded from SQLite)
+- [ ] Implement PostgreSQL database with Prisma ORM
 - [ ] Add comprehensive logging with Winston
 - [ ] Design and implement single-screen chat UI
 - [ ] Create Server-Sent Events for AI response streaming
