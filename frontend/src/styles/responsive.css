@@ -1,0 +1,575 @@
+/* ============================================
+   MOBILE-FIRST RESPONSIVE DESIGN SYSTEM
+   ============================================
+   Base styles are mobile-first (xs: 320px+)
+   Then progressively enhance for larger screens
+   ============================================ */
+
+@layer base {
+  :root {
+    /* Responsive Breakpoints - Mobile First */
+    --breakpoint-xs: 320px;   /* Small phones */
+    --breakpoint-sm: 640px;   /* Large phones */
+    --breakpoint-md: 768px;   /* Tablets */
+    --breakpoint-lg: 1024px;  /* Small laptops */
+    --breakpoint-xl: 1280px;  /* Desktops */
+    --breakpoint-2xl: 1536px; /* Large screens */
+
+    /* Responsive Spacing Scale */
+    --spacing-responsive: clamp(1rem, 2vw, 1.5rem);
+    --padding-responsive: clamp(1rem, 4vw, 2rem);
+    --margin-responsive: clamp(0.5rem, 2vw, 1rem);
+
+    /* Responsive Typography - Fluid Type Scale */
+    --font-size-xs: clamp(0.75rem, 1.5vw, 0.875rem);
+    --font-size-sm: clamp(0.875rem, 2vw, 1rem);
+    --font-size-base: clamp(1rem, 2.5vw, 1.125rem);
+    --font-size-lg: clamp(1.125rem, 3vw, 1.25rem);
+    --font-size-xl: clamp(1.25rem, 3.5vw, 1.5rem);
+    --font-size-2xl: clamp(1.5rem, 4vw, 2rem);
+    --font-size-3xl: clamp(1.875rem, 5vw, 2.5rem);
+    --font-size-4xl: clamp(2.25rem, 6vw, 3rem);
+
+    /* Container Max Widths */
+    --container-xs: 100%;
+    --container-sm: 640px;
+    --container-md: 768px;
+    --container-lg: 1024px;
+    --container-xl: 1280px;
+    --container-2xl: 1536px;
+
+    /* Grid System */
+    --grid-columns: 12;
+    --grid-gap-mobile: 1rem;
+    --grid-gap-tablet: 1.5rem;
+    --grid-gap-desktop: 2rem;
+
+    /* Touch Target Sizes */
+    --touch-target-min: 44px;
+    --touch-target-comfortable: 48px;
+    --touch-target-large: 56px;
+
+    /* Layout Heights */
+    --header-height-mobile: 56px;
+    --header-height-desktop: 64px;
+    --nav-width-collapsed: 64px;
+    --nav-width-expanded: 240px;
+    --footer-height: 64px;
+
+    /* Z-Index Layers */
+    --z-base: 0;
+    --z-dropdown: 50;
+    --z-sticky: 100;
+    --z-fixed: 200;
+    --z-modal-backdrop: 300;
+    --z-modal: 400;
+    --z-popover: 500;
+    --z-tooltip: 600;
+    --z-notification: 700;
+  }
+}
+
+/* ============================================
+   RESPONSIVE UTILITY CLASSES
+   ============================================ */
+
+@layer utilities {
+  /* Container with responsive padding */
+  .container-responsive {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--padding-responsive);
+    padding-right: var(--padding-responsive);
+  }
+
+  @media (min-width: 640px) {
+    .container-responsive {
+      max-width: var(--container-sm);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-responsive {
+      max-width: var(--container-md);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-responsive {
+      max-width: var(--container-lg);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container-responsive {
+      max-width: var(--container-xl);
+    }
+  }
+
+  /* Responsive Grid System */
+  .grid-responsive {
+    display: grid;
+    gap: var(--grid-gap-mobile);
+    grid-template-columns: repeat(4, 1fr); /* Mobile: 4 columns */
+  }
+
+  @media (min-width: 768px) {
+    .grid-responsive {
+      gap: var(--grid-gap-tablet);
+      grid-template-columns: repeat(8, 1fr); /* Tablet: 8 columns */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .grid-responsive {
+      gap: var(--grid-gap-desktop);
+      grid-template-columns: repeat(12, 1fr); /* Desktop: 12 columns */
+    }
+  }
+
+  /* Responsive Flex Layouts */
+  .flex-responsive {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-responsive);
+  }
+
+  @media (min-width: 768px) {
+    .flex-responsive {
+      flex-direction: row;
+    }
+  }
+
+  /* Stack Layout - Vertical on mobile, horizontal on desktop */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-responsive);
+  }
+
+  @media (min-width: 768px) {
+    .stack-md\:horizontal {
+      flex-direction: row;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .stack-lg\:horizontal {
+      flex-direction: row;
+    }
+  }
+
+  /* Responsive Text Alignment */
+  .text-responsive {
+    text-align: center;
+  }
+
+  @media (min-width: 768px) {
+    .text-responsive {
+      text-align: left;
+    }
+  }
+
+  /* Hide/Show Utilities */
+  .mobile-only {
+    display: block;
+  }
+
+  .tablet-only {
+    display: none;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-only {
+      display: none;
+    }
+    
+    .tablet-only {
+      display: block;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .tablet-only {
+      display: none;
+    }
+    
+    .desktop-only {
+      display: block;
+    }
+  }
+
+  /* Responsive Padding/Margin */
+  .p-responsive {
+    padding: var(--padding-responsive);
+  }
+
+  .px-responsive {
+    padding-left: var(--padding-responsive);
+    padding-right: var(--padding-responsive);
+  }
+
+  .py-responsive {
+    padding-top: var(--padding-responsive);
+    padding-bottom: var(--padding-responsive);
+  }
+
+  .m-responsive {
+    margin: var(--margin-responsive);
+  }
+
+  .mx-responsive {
+    margin-left: var(--margin-responsive);
+    margin-right: var(--margin-responsive);
+  }
+
+  .my-responsive {
+    margin-top: var(--margin-responsive);
+    margin-bottom: var(--margin-responsive);
+  }
+
+  /* Touch-Optimized Buttons */
+  .btn-touch {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    padding: 0.75rem 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (min-width: 768px) {
+    .btn-touch {
+      min-height: 40px;
+      padding: 0.5rem 1rem;
+    }
+  }
+
+  /* Responsive Card Layouts */
+  .card-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr; /* Mobile: Single column */
+  }
+
+  @media (min-width: 640px) {
+    .card-grid {
+      grid-template-columns: repeat(2, 1fr); /* Tablet: 2 columns */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .card-grid {
+      grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columns */
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .card-grid {
+      grid-template-columns: repeat(4, 1fr); /* Large: 4 columns */
+    }
+  }
+
+  /* Responsive Tables */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    min-width: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .table-mobile-stack {
+      display: block;
+    }
+
+    .table-mobile-stack thead {
+      display: none;
+    }
+
+    .table-mobile-stack tbody,
+    .table-mobile-stack tr,
+    .table-mobile-stack td {
+      display: block;
+      width: 100%;
+    }
+
+    .table-mobile-stack tr {
+      margin-bottom: 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+    }
+
+    .table-mobile-stack td {
+      text-align: right;
+      padding-left: 50%;
+      position: relative;
+    }
+
+    .table-mobile-stack td:before {
+      content: attr(data-label);
+      position: absolute;
+      left: 0.5rem;
+      width: 45%;
+      text-align: left;
+      font-weight: 600;
+    }
+  }
+
+  /* Responsive Navigation */
+  .nav-responsive {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: hsl(var(--color-background));
+    border-top: 1px solid hsl(var(--color-border));
+    z-index: var(--z-fixed);
+    height: var(--header-height-mobile);
+  }
+
+  @media (min-width: 768px) {
+    .nav-responsive {
+      position: sticky;
+      top: 0;
+      bottom: auto;
+      border-top: none;
+      border-bottom: 1px solid hsl(var(--color-border));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .nav-responsive {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      right: auto;
+      width: var(--nav-width-collapsed);
+      border-right: 1px solid hsl(var(--color-border));
+      border-bottom: none;
+      height: 100vh;
+      transition: width 0.3s ease;
+    }
+
+    .nav-responsive.expanded {
+      width: var(--nav-width-expanded);
+    }
+  }
+
+  /* Responsive Modal/Dialog */
+  .modal-responsive {
+    position: fixed;
+    inset: 0;
+    padding: 1rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-content-responsive {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  @media (min-width: 640px) {
+    .modal-responsive {
+      align-items: center;
+    }
+
+    .modal-content-responsive {
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 1rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .modal-content-responsive {
+      max-width: 600px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .modal-content-responsive {
+      max-width: 800px;
+      max-height: 70vh;
+    }
+  }
+
+  /* Responsive Form Layouts */
+  .form-responsive {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group-responsive {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .form-group-responsive.horizontal {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .form-group-responsive.horizontal label {
+      min-width: 150px;
+    }
+  }
+
+  /* Input and Textarea Responsive */
+  .input-responsive,
+  .textarea-responsive {
+    width: 100%;
+    min-height: var(--touch-target-min);
+    padding: 0.75rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  @media (min-width: 768px) {
+    .input-responsive,
+    .textarea-responsive {
+      min-height: 40px;
+      padding: 0.5rem 0.75rem;
+      font-size: inherit;
+    }
+  }
+
+  /* Responsive Image Handling */
+  .img-responsive {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .img-cover-responsive {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+
+  @media (min-width: 768px) {
+    .img-cover-responsive {
+      height: 300px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .img-cover-responsive {
+      height: 400px;
+    }
+  }
+
+  /* Responsive Aspect Ratios */
+  .aspect-responsive {
+    aspect-ratio: 1 / 1; /* Square on mobile */
+  }
+
+  @media (min-width: 768px) {
+    .aspect-responsive {
+      aspect-ratio: 4 / 3; /* 4:3 on tablet */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .aspect-responsive {
+      aspect-ratio: 16 / 9; /* 16:9 on desktop */
+    }
+  }
+
+  /* Safe Area Support for Modern Phones */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+
+  /* Responsive Scrollbar */
+  .scrollbar-responsive {
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    /* Only show custom scrollbar on devices with precise pointers */
+    .scrollbar-responsive::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .scrollbar-responsive::-webkit-scrollbar-thumb {
+      background-color: hsl(var(--color-border));
+      border-radius: 4px;
+    }
+
+    .scrollbar-responsive::-webkit-scrollbar-track {
+      background-color: hsl(var(--color-muted));
+    }
+  }
+}
+
+/* ============================================
+   RESPONSIVE ANIMATIONS
+   ============================================ */
+
+@layer utilities {
+  /* Reduce or disable animations on mobile for performance */
+  @media (max-width: 767px) {
+    .animate-mobile-reduce * {
+      animation-duration: 0.2s !important;
+      transition-duration: 0.2s !important;
+    }
+  }
+
+  /* Disable animations for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+  }
+
+  .print-break-avoid {
+    page-break-inside: avoid;
+  }
+}

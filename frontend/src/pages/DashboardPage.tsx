@@ -37,10 +37,10 @@ export const DashboardPage: React.FC = () => {
   ];
 
   const quickActions = [
+    { title: 'Start AI Chat', href: '/chat', icon: '💬' },
     { title: 'Check Email Intelligence', href: '/emails', icon: '📧' },
     { title: 'Connect Gmail', href: '/connections', icon: '🔗' },
     { title: 'View Settings', href: '/settings', icon: '⚙️' },
-    { title: 'Get Help', href: '/help', icon: '❓' },
   ];
 
   return (

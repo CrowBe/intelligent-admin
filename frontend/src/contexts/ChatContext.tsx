@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
+import { ollamaApi } from '../services/ollamaApi';
+import { getContextualActions } from '../types/actions';
 
 // Types
 interface Message {
@@ -57,6 +59,10 @@ interface ChatContextType extends ChatState {
   deleteSession: (sessionId: string) => Promise<void>;
   clearError: () => void;
   regenerateResponse: (messageId: string) => Promise<void>;
+  isOllamaAvailable: boolean;
+  ollamaModel: string | null;
+  toggleLLMProvider: () => void;
+  useOllama: boolean;
 }
 
 // Initial state
@@ -140,6 +146,26 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 // Provider
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
+  const [isOllamaAvailable, setIsOllamaAvailable] = useState(false);
+  const [ollamaModel, setOllamaModel] = useState<string | null>(null);
+  const [useOllama, setUseOllama] = useState(() => {
+    // Check localStorage for user preference
+    const savedPreference = localStorage.getItem('useOllama');
+    return savedPreference === 'true';
+  });
+
+  // Check Ollama availability on mount
+  useEffect(() => {
+    const checkOllama = async () => {
+      const available = await ollamaApi.checkAvailability();
+      setIsOllamaAvailable(available);
+      if (available) {
+        const config = ollamaApi.getConfig();
+        setOllamaModel(config.model);
+      }
+    };
+    checkOllama();
+  }, []);
 
   // Mock data for development
   React.useEffect(() => {
@@ -147,7 +173,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const mockSession: ChatSession = {
       id: '1',
       title: 'Getting Started',
-      lastMessage: 'I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?',
+      lastMessage: useOllama && isOllamaAvailable 
+        ? 'I\'m running locally via Ollama! How can I help you with your business today?'
+        : 'I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?',
       lastActivity: new Date(),
       messageCount: 2,
       contextData: {
@@ -166,7 +194,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       {
         id: '2',
         role: 'assistant',
-        content: 'I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?',
+        content: useOllama && isOllamaAvailable
+          ? `I'm running locally via Ollama (Model: ${ollamaModel})! I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?`
+          : 'I can help you set up email integration with Gmail. Would you like me to guide you through connecting your Gmail account?',
         timestamp: new Date(),
         metadata: {
           suggestions: ['Connect Gmail', 'Learn more about integrations', 'View available features'],
@@ -177,7 +207,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ADD_SESSION', payload: mockSession });
     dispatch({ type: 'SET_MESSAGES', payload: mockMessages });
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
-  }, []);
+  }, [useOllama, isOllamaAvailable, ollamaModel]);
 
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
@@ -201,18 +231,57 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Show typing indicator
       dispatch({ type: 'SET_TYPING', payload: true });
 
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      let assistantContent: string;
+      let processingTime: number;
+      const startTime = Date.now();
 
-      // Mock assistant response
+      // Use Ollama if available and enabled
+      if (useOllama && isOllamaAvailable) {
+        try {
+          // Prepare conversation history for Ollama
+          const messages = state.messages.slice(-10).map(msg => ({
+            role: msg.role as 'user' | 'assistant' | 'system',
+            content: msg.content
+          }));
+          messages.push({ role: 'user', content });
+
+          // Call Ollama API
+          const response = await ollamaApi.generateChatCompletion(messages, {
+            temperature: 0.7,
+            // Use the default system prompt from ollamaApi which has full context
+          });
+
+          assistantContent = response.message?.content || 'I apologize, but I couldn\'t generate a response. Please try again.';
+          processingTime = Date.now() - startTime;
+        } catch (ollamaError) {
+          console.error('Ollama failed:', ollamaError);
+          // Fallback to mock response if Ollama fails
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          assistantContent = `[Ollama Error - Using Mock] I understand you need help with "${content}". Let me assist you with that.`;
+          processingTime = 1500;
+        }
+      } else {
+        // Use mock response for development (or when Ollama is not available)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        assistantContent = `I understand you need help with "${content}". Let me assist you with that. ${!isOllamaAvailable ? '(Ollama is not available - using mock response)' : '(Using mock response - Ollama is disabled)'}`;
+        processingTime = 1500;
+      }
+
+      // Get contextual actions based on the conversation
+      const contextualActions = getContextualActions(content);
+      
+      // Create assistant message
       const assistantMessage: Message = {
         id: generateId(),
         role: 'assistant',
-        content: `I understand you need help with "${content}". Let me assist you with that. This is a mock response for development purposes.`,
+        content: assistantContent,
         timestamp: new Date(),
         metadata: {
-          suggestions: ['Tell me more', 'Show me how', 'What else can you do?'],
-          processingTime: 1500,
+          suggestions: generateSuggestions(content),
+          actions: contextualActions as any[], // Include contextual actions
+          processingTime,
+          llmProvider: useOllama && isOllamaAvailable ? 'ollama' : 'mock',
+          model: useOllama && isOllamaAvailable ? ollamaModel : 'mock',
         },
       };
 
@@ -241,7 +310,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: false });
       dispatch({ type: 'SET_TYPING', payload: false });
     }
-  }, [state.currentSession, state.messages.length]);
+  }, [state.currentSession, state.messages, useOllama, isOllamaAvailable, ollamaModel]);
 
   const createSession = useCallback(async (title = 'New Chat'): Promise<ChatSession> => {
     const newSession: ChatSession = {
@@ -323,6 +392,51 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     console.log('Regenerating response for message:', messageId);
   }, []);
 
+  const toggleLLMProvider = useCallback(() => {
+    const newValue = !useOllama;
+    setUseOllama(newValue);
+    localStorage.setItem('useOllama', newValue.toString());
+    
+    // Show status message
+    const provider = newValue && isOllamaAvailable ? 'Ollama (Local)' : 'Mock/API';
+    dispatch({
+      type: 'ADD_MESSAGE',
+      payload: {
+        id: generateId(),
+        role: 'system' as const,
+        content: `Switched to ${provider} for chat responses.`,
+        timestamp: new Date(),
+        metadata: {},
+      },
+    });
+  }, [useOllama, isOllamaAvailable]);
+
+  // Helper function to generate context-aware suggestions
+  const generateSuggestions = (userMessage: string): string[] => {
+    const suggestions: string[] = [];
+    const content = userMessage.toLowerCase();
+    
+    if (content.includes('email') || content.includes('gmail')) {
+      suggestions.push('How do I connect my Gmail account?');
+      suggestions.push('Show me email automation features');
+      suggestions.push('Help with email templates');
+    } else if (content.includes('invoice') || content.includes('quote')) {
+      suggestions.push('Create a professional quote template');
+      suggestions.push('Set up automatic invoicing');
+      suggestions.push('Track payment status');
+    } else if (content.includes('customer') || content.includes('client')) {
+      suggestions.push('Manage customer relationships');
+      suggestions.push('Set up follow-up reminders');
+      suggestions.push('Import customer data');
+    } else {
+      suggestions.push('Tell me more');
+      suggestions.push('Show me how');
+      suggestions.push('What else can you do?');
+    }
+    
+    return suggestions.slice(0, 3);
+  };
+
   const value: ChatContextType = {
     ...state,
     sendMessage,
@@ -331,6 +445,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     deleteSession,
     clearError,
     regenerateResponse,
+    isOllamaAvailable,
+    ollamaModel,
+    toggleLLMProvider,
+    useOllama,
   };
 
   return (

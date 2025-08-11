@@ -58,16 +58,16 @@ export function ChatInput() {
   const isDisabled = isLoading || !currentSession;
 
   return (
-    <div className="border-t border-gray-200 bg-white">
-      <div className="max-w-4xl mx-auto px-4 py-4">
+    <div className="border-t border-border bg-background">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
         <form onSubmit={handleSubmit} className="relative">
-          <div className="flex items-end gap-3">
-            {/* File upload button */}
+          <div className="flex items-end gap-2 sm:gap-3">
+            {/* File upload button - Hidden on mobile to save space */}
             <button
               type="button"
               onClick={handleFileUpload}
               disabled={isDisabled}
-              className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="hidden sm:flex flex-shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Attach file"
             >
               <PaperClipIcon className="w-5 h-5" />
@@ -82,31 +82,31 @@ export function ChatInput() {
                 onKeyDown={handleKeyDown}
                 placeholder={
                   currentSession 
-                    ? "Ask me anything about your business..." 
+                    ? "Type your message..." 
                     : "Start a new chat to begin"
                 }
                 disabled={isDisabled}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 sm:pr-12 border border-border rounded-lg sm:rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 rows={1}
-                style={{ minHeight: '48px', maxHeight: '120px' }}
+                style={{ minHeight: '44px', maxHeight: '120px' }}
               />
 
-              {/* Voice input button */}
+              {/* Voice input button - Hidden on mobile */}
               <button
                 type="button"
                 onClick={toggleRecording}
                 disabled={isDisabled}
-                className={`absolute right-2 top-2 p-2 rounded-lg transition-colors ${
+                className={`hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-lg transition-colors ${
                   isRecording 
-                    ? 'text-red-600 bg-red-50 hover:bg-red-100' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={isRecording ? "Stop recording" : "Voice input"}
               >
                 {isRecording ? (
-                  <StopIcon className="w-5 h-5" />
+                  <StopIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <MicrophoneIcon className="w-5 h-5" />
+                  <MicrophoneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>
@@ -115,10 +115,10 @@ export function ChatInput() {
             <button
               type="submit"
               disabled={isDisabled || !message.trim()}
-              className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+              className="flex-shrink-0 p-2 sm:p-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
               title="Send message"
             >
-              <PaperAirplaneIcon className="w-5 h-5" />
+              <PaperAirplaneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 
@@ -130,9 +130,9 @@ export function ChatInput() {
           )}
         </form>
 
-        {/* Quick actions */}
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-xs text-gray-500">Quick actions:</span>
+        {/* Quick actions - Scrollable on mobile */}
+        <div className="flex items-center gap-2 mt-2 sm:mt-3 overflow-x-auto scrollbar-hide">
+          <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">Quick:</span>
           {[
             'Help me with emails',
             'Schedule a meeting',
@@ -143,7 +143,7 @@ export function ChatInput() {
               key={index}
               onClick={() => setMessage(action)}
               disabled={isDisabled}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 px-2 py-1 text-xs bg-accent hover:bg-accent/80 text-accent-foreground rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {action}
             </button>
