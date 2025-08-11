@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { verifyKindeToken } from '../middleware/kindeAuth.js';
 import { EmailIntelligenceService, EmailSummary, UserEmailPreferences } from '../services/emailIntelligence.js';
+import { emailUrgencyDetectionService } from '../services/emailUrgencyDetection';
+import { notificationService } from '../services/notificationService';
 import { ollamaService } from '../services/ollamaService.js';
 
 const router = Router();
@@ -185,6 +187,105 @@ router.put('/preferences', asyncHandler(async (req, res) => {
   });
 }));
 
+// POST /api/v1/emails/urgency-analysis
+// Analyze email urgency with Phase 2A enhanced detection
+router.post('/urgency-analysis', asyncHandler(async (req, res) => {
+  const { messageId, from, to, subject, body, timestamp } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  if (!messageId || !from || !subject || !body) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'messageId, from, subject, and body are required'
+    });
+  }
+
+  const emailContent = {
+    messageId,
+    from,
+    to: to || '',
+    subject,
+    body,
+    timestamp: timestamp ? new Date(timestamp) : new Date()
+  };
+
+  const analysis = await emailUrgencyDetectionService.analyzeEmailUrgency(userId, emailContent);
+
+  // If urgent email, potentially send notification
+  if (analysis.category === 'urgent' && analysis.urgencyScore > 0.7) {
+    await notificationService.sendUrgentEmailAlert(userId, {
+      from,
+      subject,
+      urgencyScore: analysis.urgencyScore,
+      businessImpact: analysis.reasoning
+    });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      messageId,
+      analysis
+    }
+  });
+}));
+
+// GET /api/v1/emails/urgent
+// Get urgent emails for user (for Morning Brief)
+router.get('/urgent', asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  const since = req.query.since ? new Date(req.query.since as string) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  const urgentEmails = await emailUrgencyDetectionService.getUrgentEmailsForUser(userId, since);
+
+  res.json({
+    success: true,
+    data: {
+      urgentEmails,
+      count: urgentEmails.length,
+      since: since.toISOString()
+    }
+  });
+}));
+
+// POST /api/v1/emails/feedback
+// Provide feedback on urgency analysis accuracy
+router.post('/feedback', asyncHandler(async (req, res) => {
+  const { messageId, correctUrgency, correctCategory, actualCategory, actualUrgencyScore } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  if (!messageId || typeof correctUrgency !== 'boolean') {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'messageId and correctUrgency (boolean) are required'
+    });
+  }
+
+  await emailUrgencyDetectionService.updateAnalysisFromFeedback(userId, messageId, {
+    correctUrgency,
+    correctCategory: correctCategory ?? true,
+    actualCategory,
+    actualUrgencyScore
+  });
+
+  res.json({
+    success: true,
+    message: 'Feedback recorded successfully'
+  });
+}));
+
 // GET /api/v1/emails/ai-status
 // Get AI service availability status
 router.get('/ai-status', asyncHandler(async (req, res) => {
@@ -202,7 +303,11 @@ router.get('/ai-status', asyncHandler(async (req, res) => {
         available: !!process.env.OPENAI_API_KEY,
         model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
       },
-      currentStrategy: ollamaStats.isAvailable ? 'ollama-primary' : 'openai-primary'
+      currentStrategy: ollamaStats.isAvailable ? 'ollama-primary' : 'openai-primary',
+      urgencyDetection: {
+        available: true,
+        version: '2.0'
+      }
     }
   });
 }));

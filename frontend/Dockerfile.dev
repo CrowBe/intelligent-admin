@@ -3,26 +3,40 @@ FROM node:22-alpine
 # Set working directory
 WORKDIR /app
 
+# Install additional tools for better file watching on Windows
+RUN apk add --no-cache bash
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies 
-RUN npm install
+# Install dependencies with legacy peer deps for compatibility
+RUN npm install --legacy-peer-deps
 
 # Copy source code (excluding node_modules)
 COPY . .
 
-# Create a startup script to handle node_modules
-RUN echo '#!/bin/sh' > /start.sh && \
+# Create a startup script to handle node_modules and HMR
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'set -e' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Check if node_modules exists and is not empty' >> /start.sh && \
     echo 'if [ ! -d "/app/node_modules" ] || [ -z "$(ls -A /app/node_modules 2>/dev/null)" ]; then' >> /start.sh && \
     echo '  echo "Installing dependencies..."' >> /start.sh && \
-    echo '  npm install' >> /start.sh && \
+    echo '  npm install --legacy-peer-deps' >> /start.sh && \
     echo 'fi' >> /start.sh && \
-    echo 'exec npm run dev -- --host 0.0.0.0' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Clear any stale .vite cache' >> /start.sh && \
+    echo 'rm -rf /app/node_modules/.vite' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Start Vite with explicit host binding' >> /start.sh && \
+    echo 'exec npm run dev -- --host 0.0.0.0 --clearScreen false' >> /start.sh && \
     chmod +x /start.sh
 
-# Expose port
+# Expose both Vite port and HMR port
 EXPOSE 5173
+
+# Use bash for better script handling
+SHELL ["/bin/bash", "-c"]
 
 # Start development server with dependency check
 CMD ["/start.sh"]

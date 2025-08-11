@@ -102,13 +102,16 @@ export const useFirebaseMessaging = () => {
 
   const sendTokenToServer = async (fcmToken: string) => {
     try {
-      const response = await fetch('/api/v1/user/fcm-token', {
+      const response = await fetch('/api/v1/notifications/register-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`, // Adjust based on your auth setup
         },
-        body: JSON.stringify({ fcmToken }),
+        credentials: 'include',
+        body: JSON.stringify({ 
+          token: fcmToken,
+          deviceType: 'web'
+        }),
       });
 
       if (!response.ok) {
@@ -124,6 +127,75 @@ export const useFirebaseMessaging = () => {
     }
   };
 
+  const getNotificationPreferences = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/preferences', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get notification preferences');
+      }
+
+      const data = await response.json();
+      return data.preferences;
+    } catch (err) {
+      console.error('Error getting notification preferences:', err);
+      return null;
+    }
+  };
+
+  const updateNotificationPreferences = async (preferences: {
+    morningBriefEnabled?: boolean;
+    morningBriefTime?: number;
+    urgentEmailsEnabled?: boolean;
+    calendarAlertsEnabled?: boolean;
+    weekendNotifications?: boolean;
+  }) => {
+    try {
+      const response = await fetch('/api/v1/notifications/preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(preferences),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update notification preferences');
+      }
+
+      console.log('Notification preferences updated successfully');
+      return true;
+    } catch (err) {
+      console.error('Error updating notification preferences:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update preferences');
+      return false;
+    }
+  };
+
+  const sendTestNotification = async () => {
+    try {
+      const response = await fetch('/api/v1/notifications/test', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send test notification');
+      }
+
+      console.log('Test notification sent successfully');
+      return true;
+    } catch (err) {
+      console.error('Error sending test notification:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send test notification');
+      return false;
+    }
+  };
+
   return {
     messaging,
     token,
@@ -133,5 +205,8 @@ export const useFirebaseMessaging = () => {
     requestPermission,
     clearNotification,
     sendTokenToServer,
+    getNotificationPreferences,
+    updateNotificationPreferences,
+    sendTestNotification,
   };
 };

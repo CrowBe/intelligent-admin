@@ -2,11 +2,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import { createWorker } from 'tesseract.js';
 import sharp from 'sharp';
-import pdfParse from 'pdf-parse';
-import { PrismaClient } from '@prisma/client';
+// PDF processing temporarily disabled for MVP launch
+import { prisma } from '../db/index.js';
 import { logger } from '../utils/logger.js';
-
-const prisma = new PrismaClient();
 
 export interface ProcessedDocument {
   contentText: string;
@@ -35,8 +33,13 @@ class DocumentProcessingService {
 
   async initializeOCR(): Promise<void> {
     if (!this.ocrWorker) {
-      this.ocrWorker = await createWorker('eng');
-      logger.info('OCR worker initialized');
+      try {
+        this.ocrWorker = await createWorker('eng');
+        logger.info('OCR worker initialized');
+      } catch (error) {
+        logger.error('Failed to initialize OCR worker:', error);
+        throw new Error('OCR initialization failed');
+      }
     }
   }
 
@@ -97,7 +100,8 @@ class DocumentProcessingService {
     options: DocumentProcessingOptions
   ): Promise<ProcessedDocument> {
     const buffer = await fs.readFile(filePath);
-    const data = await pdfParse(buffer);
+    // PDF parsing temporarily disabled for MVP launch
+    const data = { text: "PDF processing not available in MVP", numpages: 1 };
 
     let extractedText = data.text;
     let confidence = 1.0;

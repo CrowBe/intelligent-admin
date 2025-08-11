@@ -13,6 +13,7 @@ import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 
 // Components
+import { ChatInterface } from './components/chat/ChatInterface';
 import { EmailIntelligenceDashboard } from './components/email/EmailIntelligenceDashboard';
 import { IndustryKnowledgeDashboard } from './components/industry/IndustryKnowledgeDashboard';
 
@@ -75,6 +76,17 @@ function App() {
             />
             
             <Route
+              path="/chat"
+              element={
+                <AuthGuard>
+                  <AppShell>
+                    <ChatInterface />
+                  </AppShell>
+                </AuthGuard>
+              }
+            />
+            
+            <Route
               path="/emails"
               element={
                 <AuthGuard>
@@ -102,13 +114,13 @@ function App() {
                 <AuthGuard>
                   <AppShell>
                     <div className="text-center py-16">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                      <h1 className="text-2xl font-bold text-foreground mb-4">
                         🔗 Connections
                       </h1>
-                      <p className="text-gray-600 mb-8">
+                      <p className="text-muted-foreground mb-8">
                         Manage your Gmail and other integrations here
                       </p>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground/60">
                         Coming soon!
                       </div>
                     </div>
@@ -123,13 +135,13 @@ function App() {
                 <AuthGuard>
                   <AppShell>
                     <div className="text-center py-16">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                      <h1 className="text-2xl font-bold text-foreground mb-4">
                         ⚙️ Settings
                       </h1>
-                      <p className="text-gray-600 mb-8">
+                      <p className="text-muted-foreground mb-8">
                         Configure your preferences and account settings
                       </p>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground/60">
                         Coming soon!
                       </div>
                     </div>
@@ -144,24 +156,35 @@ function App() {
         </div>
         
         <Toaster 
-          position="top-right"
+          position="bottom-center"
           toastOptions={{
             duration: 4000,
+            className: '',
             style: {
-              background: '#1f2937',
-              color: '#f9fafb',
-              border: '1px solid #374151',
+              background: 'hsl(var(--color-background))',
+              color: 'hsl(var(--color-foreground))',
+              border: '1px solid hsl(var(--color-border))',
+              padding: '12px 16px',
+              marginBottom: '80px', // Space for mobile bottom nav
             },
             success: {
+              iconTheme: {
+                primary: 'hsl(var(--color-success))',
+                secondary: 'hsl(var(--color-success-foreground))',
+              },
               style: {
-                background: '#065f46',
-                color: '#ecfdf5',
+                background: 'hsl(var(--color-success))',
+                color: 'hsl(var(--color-success-foreground))',
               },
             },
             error: {
+              iconTheme: {
+                primary: 'hsl(var(--color-destructive))',
+                secondary: 'hsl(var(--color-destructive-foreground))',
+              },
               style: {
-                background: '#991b1b',
-                color: '#fef2f2',
+                background: 'hsl(var(--color-destructive))',
+                color: 'hsl(var(--color-destructive-foreground))',
               },
             },
           }}

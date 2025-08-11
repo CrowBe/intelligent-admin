@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/index.js';
 import { logger } from '../utils/logger.js';
 
-const prisma = new PrismaClient();
+
 
 export interface WorkflowPattern {
   patternType: string;

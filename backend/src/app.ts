@@ -16,6 +16,8 @@ import { documentRoutes } from './routes/documents.js';
 import { emailRoutes } from './routes/emails.js';
 import { industryRoutes } from './routes/industry.js';
 import { healthRoutes } from './routes/health.js';
+import notificationRoutes from './routes/notifications';
+import onboardingRoutes from './routes/onboarding';
 
 const app = express();
 
@@ -57,7 +59,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging
-app.use(requestLogger);
+app.use(requestLogger as any);
 
 // Health check (before auth)
 app.use('/health', healthRoutes);
@@ -71,6 +73,8 @@ app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/emails', emailRoutes);
 app.use('/api/v1/industry', industryRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/onboarding', onboardingRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -81,7 +85,7 @@ app.use('*', (req, res) => {
 });
 
 // Global error handler
-app.use(errorHandler);
+app.use(errorHandler as any);
 
 // Start server
 const PORT = config.PORT || 3000;

@@ -29,14 +29,18 @@ model User {
   deletedAt         DateTime? @map("deleted_at")
 
   // Relations
-  chatSessions      ChatSession[]
-  integrations      Integration[]
-  documents         Document[]
-  tasks             Task[]
-  userPreferences   UserPreference[]
-  emailAnalyses     EmailAnalysis[]
-  notifications     Notification[]
-  workflowPatterns  WorkflowPattern[]
+  chatSessions              ChatSession[]
+  integrations              Integration[]
+  documents                 Document[]
+  tasks                     Task[]
+  userPreferences           UserPreference[]
+  emailAnalyses             EmailAnalysis[]
+  notifications             Notification[]
+  workflowPatterns          WorkflowPattern[]
+  notificationPreferences   NotificationPreferences?
+  notificationTokens        NotificationToken[]
+  notificationLogs          NotificationLog[]
+  onboardingProgress        OnboardingProgress[]
 
   @@map("users")
 }
@@ -318,4 +322,78 @@ model WorkflowPattern {
   @@index([confidence])
   @@index([lastSeen])
   @@map("workflow_patterns")
+}
+
+// Phase 2A: Push Notification Models
+
+model NotificationPreferences {
+  id                    String    @id @default(cuid())
+  userId                String    @unique @map("user_id")
+  morningBriefEnabled   Boolean   @default(true) @map("morning_brief_enabled")
+  morningBriefTime      Int       @default(420) @map("morning_brief_time") // 7:00 AM in minutes from midnight
+  urgentEmailsEnabled   Boolean   @default(true) @map("urgent_emails_enabled")
+  calendarAlertsEnabled Boolean   @default(true) @map("calendar_alerts_enabled")
+  weekendNotifications  Boolean   @default(false) @map("weekend_notifications")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+model NotificationToken {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  token      String
+  deviceType String   @map("device_type") // web, android, ios
+  lastUsed   DateTime @default(now()) @map("last_used")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
+  @@index([lastUsed])
+  @@map("notification_tokens")
+}
+
+model NotificationLog {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  type          String
+  title         String
+  body          String
+  sent          Boolean   @default(false)
+  failureReason String?   @map("failure_reason")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+model OnboardingProgress {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  step        String
+  completedAt DateTime? @map("completed_at")
+  skipped     Boolean   @default(false)
+  data        String?   // JSON data for the step
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, step])
+  @@index([userId])
+  @@index([step])
+  @@map("onboarding_progress")
 }

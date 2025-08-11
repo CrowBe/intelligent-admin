@@ -75,20 +75,24 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_BASE_URL: http://localhost:3000
+      # Add CHOKIDAR environment variable for better file watching
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: 1000
+      WATCHPACK_POLLING: "true"
     ports:
       - "5173:5173"
     volumes:
+      # Mount the entire frontend directory
       - ./frontend:/app
+      # Use a named volume for node_modules to avoid conflicts
       - frontend_node_modules:/app/node_modules
+      # Exclude .vite cache directory
+      - /app/.vite
     depends_on:
       - backend
-    develop:
-      watch:
-        - action: sync
-          path: ./frontend/src
-          target: /app/src
-        - action: rebuild
-          path: ./frontend/package.json
+    # For Windows, we need to use polling instead of inotify
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres_data:

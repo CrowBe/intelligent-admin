@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/index.js';
 import { industryKnowledgeService } from './industryKnowledge.js';
 import { businessContextService } from './businessContext.js';
 import { logger } from '../utils/logger.js';
 
-const prisma = new PrismaClient();
+
 
 /**
  * Conversation Intelligence Service

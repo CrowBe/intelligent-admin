@@ -25,27 +25,53 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(payload => {
   console.log('Received background message: ', payload);
 
-  const notificationTitle = payload.notification?.title || 'Intelligent Assistant';
+  const notificationTitle = payload.notification?.title || 'Intelligent Admin';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/logo192.png',
-    badge: '/logo192.png',
-    tag: 'intelligent-admin-notification',
-    requireInteraction: false,
+    icon: '/intelligent-admin-logo-1.png',
+    badge: '/intelligent-admin-logo-1.png',
+    tag: payload.data?.type || 'general',
+    requireInteraction: payload.data?.type === 'urgent_email',
     data: payload.data || {},
-    actions: [
+    actions: []
+  };
+
+  // Add contextual actions based on notification type
+  if (payload.data?.type === 'morning_brief') {
+    notificationOptions.actions = [
       {
-        action: 'open',
-        title: 'Open App',
-        icon: '/logo192.png',
+        action: 'view_brief',
+        title: '📋 View Brief'
       },
       {
         action: 'dismiss',
-        title: 'Dismiss',
-        icon: '/close.png',
+        title: 'Later'
+      }
+    ];
+  } else if (payload.data?.type === 'urgent_email') {
+    notificationOptions.actions = [
+      {
+        action: 'open_email',
+        title: '📧 Reply'
       },
-    ],
-  };
+      {
+        action: 'dismiss',
+        title: 'Later'
+      }
+    ];
+    notificationOptions.requireInteraction = true; // Keep urgent emails visible
+  } else {
+    notificationOptions.actions = [
+      {
+        action: 'open',
+        title: 'Open App'
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss'
+      }
+    ];
+  }
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
@@ -56,22 +82,64 @@ self.addEventListener('notificationclick', event => {
 
   event.notification.close();
 
-  if (event.action === 'open' || !event.action) {
-    // Open the app
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-        // If app is already open, focus it
-        for (const client of clientList) {
-          if (client.url.includes('localhost') && 'focus' in client) {
-            return client.focus();
-          }
-        }
-        // Otherwise, open new window
-        if (clients.openWindow) {
-          return clients.openWindow('/');
-        }
-      })
-    );
+  const action = event.action;
+  const data = event.notification.data || {};
+
+  // Handle different actions
+  let urlToOpen = '/dashboard';
+  
+  if (action === 'view_brief' || data.type === 'morning_brief') {
+    urlToOpen = '/dashboard?tab=morning-brief';
+  } else if (action === 'open_email' || data.type === 'urgent_email') {
+    urlToOpen = '/dashboard?tab=emails&focus=urgent';
+  } else if (data.type === 'calendar_conflict') {
+    urlToOpen = '/dashboard?tab=calendar';
+  } else if (action === 'dismiss') {
+    // Just close, don't open app
+    return;
   }
-  // If dismiss action, just close (already handled above)
+
+  // Open/focus the app
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Check if app is already open
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          // Focus existing window and navigate
+          client.focus();
+          client.postMessage({
+            type: 'NOTIFICATION_CLICK',
+            action: action,
+            data: data,
+            url: urlToOpen
+          });
+          return;
+        }
+      }
+      
+      // Open new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', event => {
+  console.log('Notification closed: ', event);
+  
+  // Track notification dismissal for analytics
+  const data = event.notification.data || {};
+  
+  if (data.type) {
+    fetch('/api/v1/notifications/dismissed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: data.type,
+        timestamp: new Date().toISOString()
+      })
+    }).catch(err => console.log('Failed to track notification dismissal:', err));
+  }
 });

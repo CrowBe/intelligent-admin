@@ -1,42 +1,33 @@
-import { beforeAll, afterAll, afterEach, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, vi, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import { mockDeep, mockReset, DeepMockProxy } from 'vitest-mock-extended';
 
-// Mock PrismaClient for tests
+// Create a deep mock of PrismaClient
+export const prisma: DeepMockProxy<PrismaClient> = mockDeep<PrismaClient>();
+
+// Set the global mock for the database module to use
+global.prismaMock = prisma as any;
+
+// Mock the PrismaClient module
 vi.mock('@prisma/client', () => ({
-  PrismaClient: vi.fn().mockImplementation(() => ({
-    $connect: vi.fn().mockResolvedValue(undefined),
-    $disconnect: vi.fn().mockResolvedValue(undefined),
-    user: {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    document: {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    workflowPattern: {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      upsert: vi.fn(),
-    },
-    documentSuggestion: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-    }
-  }))
+  PrismaClient: vi.fn(() => prisma)
 }));
 
-// Create a mock prisma instance for exports
-const prisma = new PrismaClient();
+// Mock the database module to return our mocked prisma
+vi.mock('../db/index.js', () => ({
+  prisma,
+  default: prisma
+}));
+
+// Reset mocks before each test
+beforeEach(() => {
+  mockReset(prisma);
+  
+  // Setup default mock behaviors that tests commonly need
+  // These can be overridden in individual tests
+  prisma.$connect.mockResolvedValue();
+  prisma.$disconnect.mockResolvedValue();
+});
 
 // Global test setup
 beforeAll(async () => {
@@ -68,4 +59,4 @@ process.env.OPENAI_API_KEY = 'test-openai-key';
 process.env.FIREBASE_SERVICE_ACCOUNT_KEY = '{}';
 process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
 
-export { prisma };
+// Prisma is already exported at the top of the file

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/index.js';
 import { getOpenAIService, ChatMessage, SYSTEM_PROMPTS } from './openai.js';
 import { industryKnowledgeService, IndustryContext } from './industryKnowledge.js';
 import { conversationIntelligenceService } from './conversationIntelligence.js';
@@ -8,7 +8,7 @@ import { ollamaService } from './ollamaService.js';
 import { logger } from '../utils/logger.js';
 import { CustomError } from '../middleware/errorHandler.js';
 
-const prisma = new PrismaClient();
+
 
 // Types
 export interface CreateSessionData {

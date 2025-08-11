@@ -1,95 +1,167 @@
 import React, { useState } from 'react';
-import { useAppAuth } from '../../contexts/KindeAuthContext';
 import { useChat } from '../../contexts/ChatContext';
-import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { formatDistanceToNow } from 'date-fns';
 
 export function ChatInterface() {
-  const { isAuthenticated, login } = useAppAuth();
-  const { currentSession, connectionStatus } = useChat();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { 
+    currentSession, 
+    connectionStatus, 
+    sessions, 
+    createSession, 
+    switchSession, 
+    deleteSession,
+    isOllamaAvailable,
+    ollamaModel,
+    toggleLLMProvider,
+    useOllama
+  } = useChat();
+  const [showSessionList, setShowSessionList] = useState(false);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
-          <p className="text-gray-600 mb-6">Please sign in to access the chat interface.</p>
-          <button
-            onClick={login}
-            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleNewChat = async () => {
+    await createSession();
+    setShowSessionList(false);
+  };
+
+  const handleSwitchSession = async (sessionId: string) => {
+    await switchSession(sessionId);
+    setShowSessionList(false);
+  };
+
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (sessions.length <= 1) return;
+    
+    if (confirm('Are you sure you want to delete this chat?')) {
+      await deleteSession(sessionId);
+    }
+  };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-25 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 lg:static lg:inset-0
-        transform transition-transform duration-300 ease-in-out lg:transform-none
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <ChatSidebar onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-            >
-              <Bars3Icon className="w-5 h-5" />
-            </button>
-            
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">
-                {currentSession?.title || 'AI Administrative Assistant'}
+    <div className="flex flex-col h-full bg-background">
+      {/* Chat Header with Session Management */}
+      <div className="border-b border-border bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${
+              connectionStatus === 'connected' ? 'bg-green-500' : 
+              connectionStatus === 'connecting' ? 'bg-yellow-500' : 
+              'bg-red-500'
+            }`} />
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">
+                {currentSession?.title || 'AI Chat Session'}
               </h1>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <div className={`w-2 h-2 rounded-full ${
-                  connectionStatus === 'connected' ? 'bg-green-500' : 
-                  connectionStatus === 'connecting' ? 'bg-yellow-500' : 
-                  'bg-red-500'
-                }`} />
-                <span className="capitalize">{connectionStatus}</span>
-              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground capitalize">{connectionStatus}</p>
             </div>
           </div>
 
-          {/* Mobile sidebar close button */}
-          {sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Ollama Toggle */}
+            {isOllamaAvailable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLLMProvider}
+                className={`px-2 sm:px-3 ${useOllama ? 'bg-green-50 dark:bg-green-950 border-green-500' : ''}`}
+                title={useOllama ? `Using Ollama (${ollamaModel})` : 'Using Mock API'}
+              >
+                <span className="hidden sm:inline">
+                  {useOllama ? '🟢 Local' : '☁️ API'}
+                </span>
+                <span className="sm:hidden">
+                  {useOllama ? '🟢' : '☁️'}
+                </span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSessionList(!showSessionList)}
+              className="px-2 sm:px-3"
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          )}
-        </header>
-
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <ChatMessages />
-          <ChatInput />
+              <span className="hidden sm:inline">Sessions</span>
+              <span className="sm:hidden">📋</span>
+              <span className="ml-1">({sessions.length})</span>
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleNewChat}
+              className="px-2 sm:px-3"
+            >
+              <PlusIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">New Chat</span>
+            </Button>
+          </div>
         </div>
+
+        {/* Session List Dropdown */}
+        {showSessionList && (
+          <div className="border-t border-border bg-background">
+            <div className="p-3 sm:p-4 max-h-48 sm:max-h-64 overflow-y-auto">
+              <div className="space-y-2">
+                {sessions.map((session) => (
+                  <Card
+                    key={session.id}
+                    className={`p-3 cursor-pointer transition-colors ${
+                      currentSession?.id === session.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'hover:bg-accent'
+                    }`}
+                    onClick={() => handleSwitchSession(session.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-foreground truncate text-sm">
+                          {session.title}
+                        </h4>
+                        {session.lastMessage && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {session.lastMessage}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(session.lastActivity, { addSuffix: true })}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {session.messageCount} messages
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {sessions.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteSession(session.id, e)}
+                          className="ml-2 h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 min-h-0">
+        <ChatMessages />
+      </div>
+
+      {/* Chat Input */}
+      <div className="border-t border-border bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <ChatInput />
       </div>
     </div>
   );

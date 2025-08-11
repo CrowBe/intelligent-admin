@@ -1,19 +1,6 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response, NextFunction } from '../types/express.js';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from './errorHandler.js';
-
-// Extend Express Request to include user info
-declare module 'express' {
-  export interface Request {
-    user?: {
-      id: string;
-      email: string;
-      name?: string;
-      organization?: string;
-      permissions?: string[];
-    };
-  }
-}
 
 export interface KindeJWTPayload {
   sub: string; // User ID
@@ -37,10 +24,11 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Unauthorized',
       message: 'No valid authorization header found',
     });
+    return;
   }
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -57,18 +45,20 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
     const decoded = jwt.decode(token) as KindeJWTPayload;
 
     if (!decoded || !decoded.sub || !decoded.email) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid token payload',
       });
+      return;
     }
 
     // Check if token is expired
     if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Token has expired',
       });
+      return;
     }
 
     // Add user info to request
@@ -82,10 +72,11 @@ export const verifyKindeToken = asyncHandler(async (req: Request, res: Response,
 
     next();
   } catch (error) {
-    return res.status(401).json({
+    res.status(401).json({
       error: `error ${error}`,
       message: 'Failed to verify token',
     });
+    return;
   }
 });
 
@@ -118,10 +109,7 @@ export const verifyKindeTokenOptional = asyncHandler(async (req: Request, res: R
     }
   } catch (error) {
     // Log error but continue without user info
-    return res.status(401).json({
-      error: `error ${error}`,
-      message: 'Failed to verify token',
-    });
+    console.error('Optional auth error:', error);
   }
 
   next();
@@ -133,20 +121,22 @@ export const verifyKindeTokenOptional = asyncHandler(async (req: Request, res: R
 export const requirePermissions = (requiredPermissions: string[]) => {
   return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Authentication required',
       });
+      return;
     }
 
     const userPermissions = req.user.permissions || [];
     const hasRequiredPermissions = requiredPermissions.every(permission => userPermissions.includes(permission));
 
     if (!hasRequiredPermissions) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Forbidden',
         message: `Missing required permissions: ${requiredPermissions.join(', ')}`,
       });
+      return;
     }
 
     next();

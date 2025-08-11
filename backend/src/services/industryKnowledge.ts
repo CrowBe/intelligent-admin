@@ -1,9 +1,9 @@
 import { logger } from '../utils/logger.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/index.js';
 import * as cheerio from 'cheerio';
 import axios from 'axios';
 
-const prisma = new PrismaClient();
+
 
 /**
  * Industry Knowledge Service

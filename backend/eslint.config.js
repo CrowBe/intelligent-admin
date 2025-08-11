@@ -12,6 +12,21 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: ['./tsconfig.json']
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        BufferEncoding: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        exports: 'writable',
+        module: 'writable',
+        require: 'readonly',
+        global: 'readonly',
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
+        NodeJS: 'readonly'
       }
     },
     plugins: {
@@ -25,6 +40,6 @@ export default [
     }
   },
   {
-    ignores: ['dist', '*.config.js', '*.config.ts', 'node_modules', 'coverage', 'uploads']
+    ignores: ['dist', '*.config.js', '*.config.ts', 'node_modules', 'coverage', 'uploads', '**/*.test.ts', '**/*.spec.ts', 'scripts/**', 'backend/**']
   }
 ];

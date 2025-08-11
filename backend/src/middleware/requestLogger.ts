@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from '../types/express.js';
 import { logRequest } from '../utils/logger.js';
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
@@ -9,7 +9,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   res.end = function(...args: any[]) {
     const responseTime = Date.now() - start;
     logRequest(req, res, responseTime);
-    return originalEnd.apply(res, args);
+    return originalEnd.apply(res, args as [any, BufferEncoding?, (() => void)?]);
   } as any;
 
   next();
