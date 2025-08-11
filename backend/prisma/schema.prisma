@@ -1,0 +1,59 @@
+// Prisma schema for PostgreSQL
+// Phase 2B: Industry Intelligence & Business Context
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model IndustrySource {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  url         String?
+  isActive    Boolean  @default(true)
+  lastCrawled DateTime?
+  items       IndustryItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ContentType {
+  regulation
+  standard
+  pricing
+  safety
+  best_practice
+}
+
+model IndustryItem {
+  id             String      @id @default(cuid())
+  sourceId       String
+  source         IndustrySource @relation(fields: [sourceId], references: [id])
+  contentType    ContentType
+  category       String
+  title          String
+  content        String
+  relevanceScore Float       @default(0)
+  sourceUrl      String?
+  lastUpdated    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([category])
+  @@index([contentType])
+  @@index([relevanceScore])
+}
+
+model CrawlLog {
+  id        String   @id @default(cuid())
+  sourceId  String
+  source    IndustrySource @relation(fields: [sourceId], references: [id])
+  status    String
+  message   String?
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+}
