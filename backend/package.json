@@ -7,6 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",
+    "dev:test": "tsx watch --clear-screen=false src/test-api-server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
@@ -33,10 +34,11 @@
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.18.0",
     "prisma": "^5.16.2",
     "tsx": "^4.7.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.4"
+    "vitest": "^3.2.4"
   }
 }
