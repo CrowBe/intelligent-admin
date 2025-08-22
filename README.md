@@ -105,7 +105,7 @@ npm run build        # Build for production
 
 ### Simplified Stack
 - **Frontend**: React + TypeScript + Tailwind CSS
-- **Backend**: Express.js + Prisma ORM + SQLite/PostgreSQL
+- **Backend**: Express.js + Prisma ORM + PostgreSQL
 - **AI**: OpenAI API integration
 - **Real-time**: Server-Sent Events
 - **MCP Agents**: Gmail, Calendar, Document processing
