@@ -1,16 +1,24 @@
 import { Router } from 'express';
-import { prisma } from '../services/prisma.js';
 import { OnboardingService, OnboardingStep, BusinessType } from '../services/onboardingService.js';
 import { z } from 'zod';
 
 export const onboardingRouter = Router();
-const onboardingService = new OnboardingService(prisma);
+
+// Lazily initialize the service to ensure DI container is ready
+let onboardingService: OnboardingService | null = null;
+
+const getOnboardingService = (): OnboardingService => {
+  if (!onboardingService) {
+    onboardingService = new OnboardingService();
+  }
+  return onboardingService;
+};
 
 // Get onboarding progress
 onboardingRouter.get('/progress/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const progress = await onboardingService.getProgress(userId);
+    const progress = await getOnboardingService().getProgress(userId);
     res.json({ progress });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -21,7 +29,7 @@ onboardingRouter.get('/progress/:userId', async (req, res) => {
 onboardingRouter.post('/complete-step', async (req, res) => {
   try {
     const { userId, step, data } = req.body;
-    const progress = await onboardingService.completeStep(userId, step, data);
+    const progress = await getOnboardingService().completeStep(userId, step, data);
     res.json({ success: true, progress });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -32,7 +40,7 @@ onboardingRouter.post('/complete-step', async (req, res) => {
 onboardingRouter.post('/skip-step', async (req, res) => {
   try {
     const { userId, step } = req.body;
-    const progress = await onboardingService.skipStep(userId, step);
+    const progress = await getOnboardingService().skipStep(userId, step);
     res.json({ success: true, progress });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -60,7 +68,7 @@ onboardingRouter.post('/business-profile', async (req, res) => {
 
     const { userId, ...profileData } = req.body;
     const validated = schema.parse({ userId, ...profileData });
-    const profile = await onboardingService.saveBusinessProfile(userId, profileData);
+    const profile = await getOnboardingService().saveBusinessProfile(userId, profileData);
     res.json({ success: true, profile });
   } catch (error) {
     res.status(400).json({ error: String(error) });
@@ -71,7 +79,7 @@ onboardingRouter.post('/business-profile', async (req, res) => {
 onboardingRouter.get('/business-profile/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const profile = await onboardingService.getBusinessProfile(userId);
+    const profile = await getOnboardingService().getBusinessProfile(userId);
     res.json({ profile });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -82,7 +90,7 @@ onboardingRouter.get('/business-profile/:userId', async (req, res) => {
 onboardingRouter.get('/tips/:step', async (req, res) => {
   try {
     const step = req.params.step as OnboardingStep;
-    const tips = onboardingService.getTipsForStep(step);
+    const tips = getOnboardingService().getTipsForStep(step);
     res.json({ tips });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -93,7 +101,7 @@ onboardingRouter.get('/tips/:step', async (req, res) => {
 onboardingRouter.get('/security/:step', async (req, res) => {
   try {
     const step = req.params.step as OnboardingStep;
-    const info = onboardingService.getSecurityInfo(step);
+    const info = getOnboardingService().getSecurityInfo(step);
     res.json({ info });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -104,7 +112,7 @@ onboardingRouter.get('/security/:step', async (req, res) => {
 onboardingRouter.post('/reset/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const result = await onboardingService.resetOnboarding(userId);
+    const result = await getOnboardingService().resetOnboarding(userId);
     res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -114,7 +122,7 @@ onboardingRouter.post('/reset/:userId', async (req, res) => {
 // Get onboarding statistics
 onboardingRouter.get('/stats', async (req, res) => {
   try {
-    const stats = await onboardingService.getStats();
+    const stats = await getOnboardingService().getStats();
     res.json({ stats });
   } catch (error) {
     res.status(500).json({ error: String(error) });

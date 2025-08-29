@@ -177,18 +177,18 @@ export class EmailUrgencyDetectionService {
     const emailAge = Date.now() - new Date(email.receivedAt).getTime();
     const hoursOld = emailAge / (1000 * 60 * 60);
     
-    if (hoursOld < 1) score += 10; // Very recent
-    if (hoursOld < 4) score += 5; // Recent
+    if (hoursOld < 1) {score += 10;} // Very recent
+    if (hoursOld < 4) {score += 5;} // Recent
     
     // Subject line indicators
-    if (email.subject.includes('!')) score += 5;
-    if (email.subject.toUpperCase() === email.subject && email.subject.length > 5) score += 10; // ALL CAPS
-    if (email.subject.includes('RE:') && email.subject.includes('RE: RE:')) score += 8; // Long thread
+    if (email.subject.includes('!')) {score += 5;}
+    if (email.subject.toUpperCase() === email.subject && email.subject.length > 5) {score += 10;} // ALL CAPS
+    if (email.subject.includes('RE:') && email.subject.includes('RE: RE:')) {score += 8;} // Long thread
     
     // Time mentions in content
-    if (content.includes('today') || content.includes('tonight')) score += 10;
-    if (content.includes('tomorrow')) score += 5;
-    if (content.includes('this week')) score += 3;
+    if (content.includes('today') || content.includes('tonight')) {score += 10;}
+    if (content.includes('tomorrow')) {score += 5;}
+    if (content.includes('this week')) {score += 3;}
     
     return Math.min(100, Math.max(0, score));
   }
@@ -213,9 +213,9 @@ export class EmailUrgencyDetectionService {
     }
     
     // Trade-specific patterns
-    if (content.includes('site visit') || content.includes('job site')) score += 15;
-    if (content.includes('quote') || content.includes('estimate')) score += 20;
-    if (content.includes('invoice') || content.includes('payment')) score += 20;
+    if (content.includes('site visit') || content.includes('job site')) {score += 15;}
+    if (content.includes('quote') || content.includes('estimate')) {score += 20;}
+    if (content.includes('invoice') || content.includes('payment')) {score += 20;}
     
     return Math.min(100, Math.max(0, score));
   }
@@ -237,11 +237,11 @@ export class EmailUrgencyDetectionService {
     score += Math.min(20, exclamationCount * 5);
     
     // Suspicious patterns
-    if (email.from.includes('noreply@') && content.includes('click here')) score += 20;
-    if (content.includes('$') && content.includes('free')) score += 15;
+    if (email.from.includes('noreply@') && content.includes('click here')) {score += 20;}
+    if (content.includes('$') && content.includes('free')) {score += 15;}
     
     // All caps subject
-    if (email.subject.toUpperCase() === email.subject && email.subject.length > 20) score += 10;
+    if (email.subject.toUpperCase() === email.subject && email.subject.length > 20) {score += 10;}
     
     return Math.min(100, Math.max(0, score));
   }
@@ -250,11 +250,11 @@ export class EmailUrgencyDetectionService {
    * Determine email category
    */
   private determineCategory(content: string, urgencyScore: number, businessRelevance: number, spamScore: number): EmailCategory {
-    if (spamScore > 60) return EmailCategory.SPAM;
-    if (urgencyScore > 70) return EmailCategory.URGENT;
-    if (content.includes('follow up') || content.includes('following up')) return EmailCategory.FOLLOW_UP;
-    if (businessRelevance > 70) return EmailCategory.STANDARD;
-    if (ADMIN_KEYWORDS.some(keyword => content.includes(keyword))) return EmailCategory.ADMIN;
+    if (spamScore > 60) {return EmailCategory.SPAM;}
+    if (urgencyScore > 70) {return EmailCategory.URGENT;}
+    if (content.includes('follow up') || content.includes('following up')) {return EmailCategory.FOLLOW_UP;}
+    if (businessRelevance > 70) {return EmailCategory.STANDARD;}
+    if (ADMIN_KEYWORDS.some(keyword => content.includes(keyword))) {return EmailCategory.ADMIN;}
     
     return EmailCategory.STANDARD;
   }
@@ -263,9 +263,9 @@ export class EmailUrgencyDetectionService {
    * Determine priority level
    */
   private determinePriority(urgencyScore: number, businessRelevance: number, category: EmailCategory): EmailPriority {
-    if (category === EmailCategory.URGENT || urgencyScore > 80) return EmailPriority.URGENT;
-    if (urgencyScore > 60 || (businessRelevance > 80 && urgencyScore > 40)) return EmailPriority.HIGH;
-    if (urgencyScore < 20 && businessRelevance < 30) return EmailPriority.LOW;
+    if (category === EmailCategory.URGENT || urgencyScore > 80) {return EmailPriority.URGENT;}
+    if (urgencyScore > 60 || (businessRelevance > 80 && urgencyScore > 40)) {return EmailPriority.HIGH;}
+    if (urgencyScore < 20 && businessRelevance < 30) {return EmailPriority.LOW;}
     return EmailPriority.MEDIUM;
   }
 
@@ -289,8 +289,8 @@ export class EmailUrgencyDetectionService {
    * Check if action is required
    */
   private requiresAction(content: string, category: EmailCategory): boolean {
-    if (category === EmailCategory.URGENT) return true;
-    if (category === EmailCategory.SPAM) return false;
+    if (category === EmailCategory.URGENT) {return true;}
+    if (category === EmailCategory.SPAM) {return false;}
     
     const actionPhrases = [
       'please respond', 'please reply', 'please confirm',

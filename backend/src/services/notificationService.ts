@@ -1,5 +1,12 @@
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { DIContainer } from '../repositories/RepositoryFactory.js';
+import type { 
+  NotificationPreferenceRepository,
+  NotificationTokenRepository,
+  NotificationLogRepository,
+  EmailAnalysisRepository,
+  TaskRepository
+} from '../repositories/index.js';
 
 // Notification types
 export enum NotificationType {
@@ -33,7 +40,20 @@ const NotificationPreferenceSchema = z.object({
 export type NotificationPreference = z.infer<typeof NotificationPreferenceSchema>;
 
 export class NotificationService {
-  constructor(private prisma: PrismaClient) {}
+  private preferenceRepo: NotificationPreferenceRepository;
+  private tokenRepo: NotificationTokenRepository;
+  private logRepo: NotificationLogRepository;
+  private emailRepo: EmailAnalysisRepository;
+  private taskRepo: TaskRepository;
+
+  constructor() {
+    const container = DIContainer.getInstance();
+    this.preferenceRepo = container.notificationPreference;
+    this.tokenRepo = container.notificationToken;
+    this.logRepo = container.notificationLog;
+    this.emailRepo = container.emailAnalysis;
+    this.taskRepo = container.task;
+  }
 
   /**
    * Create or update notification preferences for a user
@@ -41,36 +61,22 @@ export class NotificationService {
   async upsertPreferences(preferences: NotificationPreference) {
     const validated = NotificationPreferenceSchema.parse(preferences);
     
-    return await this.prisma.notificationPreference.upsert({
-      where: {
-        userId_type: {
-          userId: validated.userId,
-          type: validated.type
-        }
-      },
-      update: {
-        enabled: validated.enabled,
-        timingPreferences: validated.timing as any,
-        channels: validated.channels as any,
-        updatedAt: new Date()
-      },
-      create: {
-        userId: validated.userId,
-        type: validated.type,
+    return await this.preferenceRepo.upsertPreference(
+      validated.userId,
+      validated.type,
+      {
         enabled: validated.enabled,
         timingPreferences: validated.timing as any,
         channels: validated.channels as any
       }
-    });
+    );
   }
 
   /**
    * Get user's notification preferences
    */
   async getPreferences(userId: string) {
-    return await this.prisma.notificationPreference.findMany({
-      where: { userId }
-    });
+    return await this.preferenceRepo.findByUserId(userId);
   }
 
   /**
@@ -87,7 +93,7 @@ export class NotificationService {
     const currentDay = userTime.getDay();
     
     const timing = preference.timingPreferences;
-    if (!timing) return true; // No timing restrictions
+    if (!timing) {return true;} // No timing restrictions
     
     // Check day of week
     if (timing.daysOfWeek && !timing.daysOfWeek.includes(currentDay)) {
@@ -113,14 +119,8 @@ export class NotificationService {
   }) {
     try {
       // Get user's FCM token
-      const token = await this.prisma.notificationToken.findFirst({
-        where: { 
-          userId,
-          active: true,
-          platform: 'web'
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+      const tokens = await this.tokenRepo.findActiveByUserId(userId);
+      const token = tokens.find(t => t.platform === 'web') || tokens[0];
 
       if (!token) {
         console.log(`No active FCM token for user ${userId}`);
@@ -128,27 +128,19 @@ export class NotificationService {
       }
 
       // Log the notification
-      const log = await this.prisma.notificationLog.create({
-        data: {
-          userId,
-          type: notification.type || NotificationType.CUSTOM,
-          title: notification.title,
-          body: notification.body,
-          data: notification.data as any,
-          status: 'pending',
-          channel: 'push'
-        }
+      const log = await this.logRepo.create({
+        userId,
+        type: notification.type || NotificationType.CUSTOM,
+        title: notification.title,
+        body: notification.body,
+        data: notification.data as any,
+        status: 'pending',
+        channel: 'push'
       });
 
       // TODO: Integrate with Firebase Admin SDK to actually send
       // For now, we'll just mark it as sent
-      await this.prisma.notificationLog.update({
-        where: { id: log.id },
-        data: { 
-          status: 'sent',
-          sentAt: new Date()
-        }
-      });
+      await this.logRepo.markAsSent(log.id);
 
       return log;
     } catch (error) {
@@ -174,21 +166,17 @@ export class NotificationService {
     yesterday.setDate(yesterday.getDate() - 1);
 
     // Get urgent emails count
-    const urgentEmails = await this.prisma.emailAnalysis.count({
-      where: {
-        userId,
-        priority: 'urgent',
-        createdAt: { gte: yesterday }
-      }
-    });
+    const urgentEmails = await this.emailRepo.count({
+      userId,
+      priority: 'urgent',
+      analyzedAt: yesterday
+    } as any);
 
     // Get pending tasks
-    const pendingTasks = await this.prisma.task.count({
-      where: {
-        userId,
-        status: 'pending'
-      }
-    });
+    const pendingTasks = await this.taskRepo.count({
+      userId,
+      status: 'pending'
+    } as any);
 
     // Get today's calendar events (mock for now)
     const todayEvents = 3; // TODO: Integrate with calendar service
@@ -247,12 +235,9 @@ export class NotificationService {
     console.log('Scheduling morning briefs...');
     
     // Get all users with morning brief enabled
-    const preferences = await this.prisma.notificationPreference.findMany({
-      where: {
-        type: NotificationType.MORNING_BRIEF,
-        enabled: true
-      }
-    });
+    const preferences = await this.preferenceRepo.findEnabledByType(
+      NotificationType.MORNING_BRIEF
+    );
 
     for (const pref of preferences) {
       if (this.isWithinTimeWindow(pref)) {
@@ -278,44 +263,20 @@ export class NotificationService {
    * Save FCM token for a user
    */
   async saveToken(userId: string, token: string, platform: 'web' | 'ios' | 'android' = 'web') {
-    // Deactivate old tokens
-    await this.prisma.notificationToken.updateMany({
-      where: { userId, platform },
-      data: { active: false }
-    });
-
-    // Save new token
-    return await this.prisma.notificationToken.create({
-      data: {
-        userId,
-        token,
-        platform,
-        active: true
-      }
-    });
+    return await this.tokenRepo.upsertUserToken(userId, token, platform);
   }
 
   /**
    * Get notification history for a user
    */
   async getHistory(userId: string, limit: number = 50) {
-    return await this.prisma.notificationLog.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit
-    });
+    return await this.logRepo.findByUserId(userId, limit);
   }
 
   /**
    * Mark notification as read
    */
   async markAsRead(notificationId: string) {
-    return await this.prisma.notificationLog.update({
-      where: { id: notificationId },
-      data: { 
-        readAt: new Date(),
-        status: 'read'
-      }
-    });
+    return await this.logRepo.markAsRead(notificationId);
   }
 }
