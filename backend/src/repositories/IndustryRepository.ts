@@ -1,4 +1,5 @@
-import { PrismaClient, IndustryItem, IndustrySource, ContentType, Prisma } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { PrismaClient, type IndustryItem, type IndustrySource, type ContentType, type Prisma } from '@prisma/client';
 import { BaseRepository } from './base/BaseRepository.js';
 
 /**
@@ -17,7 +18,7 @@ export class IndustryItemRepository extends BaseRepository<
    * Search industry items by query string
    */
   async search(query: string, limit: number = 50): Promise<IndustryItem[]> {
-    if (!query) {
+    if (query === '' || query === null || query === undefined) {
       return [];
     }
 
@@ -181,7 +182,7 @@ export class IndustrySourceRepository extends BaseRepository<
       orderBy: { name: 'asc' }
     });
 
-    return sources.map((source: any) => ({
+    return sources.map((source) => ({
       ...source,
       itemCount: source._count.items
     }));
@@ -201,12 +202,12 @@ export class IndustrySourceRepository extends BaseRepository<
    */
   async toggleActiveStatus(id: string): Promise<IndustrySource> {
     const source = await this.findById(id);
-    if (!source) {
+    if (source === null || source === undefined) {
       throw new Error('Source not found');
     }
 
     return await this.update(id, {
-      isActive: !source.isActive
+      isActive: source.isActive === false
     });
   }
 }

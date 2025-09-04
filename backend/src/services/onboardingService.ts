@@ -46,9 +46,9 @@ const BusinessProfileSchema = z.object({
 export type BusinessProfile = z.infer<typeof BusinessProfileSchema>;
 
 export class OnboardingService {
-  private progressRepo: OnboardingProgressRepository;
-  private preferenceRepo: UserPreferenceRepository;
-  private userRepo: UserRepository;
+  private readonly progressRepo: OnboardingProgressRepository;
+  private readonly preferenceRepo: UserPreferenceRepository;
+  private readonly userRepo: UserRepository;
 
   constructor() {
     const container = DIContainer.getInstance();

@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { IRepository, QueryOptions, PaginatedResult, PaginationOptions } from '../interfaces/IRepository.js';
+import type { PrismaClient } from '@prisma/client';
+import type { IRepository, QueryOptions, PaginatedResult, PaginationOptions } from '../interfaces/IRepository.js';
 
 /**
  * Abstract base repository implementing common CRUD operations
@@ -20,7 +20,7 @@ export abstract class BaseRepository<T, CreateDTO = any, UpdateDTO = any>
    * Get the Prisma model delegate
    */
   protected get model(): any {
-    return (this.prisma as any)[this.modelName];
+    return (this.prisma)[this.modelName];
   }
 
   /**

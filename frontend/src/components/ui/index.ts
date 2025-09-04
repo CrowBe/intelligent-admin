@@ -2,7 +2,7 @@
 export { Alert, AlertDescription, AlertTitle } from './alert';
 export { Avatar, AvatarFallback, AvatarImage } from './avatar';
 export { Badge } from './Badge';
-export { Button } from './Button';
+export { Button, buttonVariants, type ButtonProps } from './button';
 export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './Card';
 export {
   DropdownMenu,

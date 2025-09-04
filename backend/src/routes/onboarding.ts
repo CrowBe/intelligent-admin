@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { OnboardingService, OnboardingStep, BusinessType } from '../services/onboardingService.js';
+import type { OnboardingStep} from '../services/onboardingService.js';
+import { OnboardingService, BusinessType } from '../services/onboardingService.js';
 import { z } from 'zod';
 
 export const onboardingRouter = Router();

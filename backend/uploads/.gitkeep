@@ -1,0 +1,2 @@
+# This file ensures the uploads directory structure is maintained in git
+# The FileUploadService will create temp/ and processed/ subdirectories as needed

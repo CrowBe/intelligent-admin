@@ -1,7 +1,7 @@
 import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { LOG_LEVEL, NODE_ENV, isProduction, isDevelopment } from '../config/env.js';
+import { LOG_LEVEL, isProduction, isDevelopment } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +44,7 @@ const devFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`
+    (info: winston.Logform.TransformableInfo) => `${info['timestamp']} ${info.level}: ${info.message}${info['stack'] !== undefined && typeof info['stack'] === 'string' ? `\n${info['stack']}` : ''}`
   )
 );
 
@@ -100,14 +100,14 @@ const logger = winston.createLogger({
 
 // Create a stream object for Morgan middleware
 export const stream = {
-  write: (message: string) => {
+  write: (message: string): void => {
     // Remove trailing newline
     logger.http(message.trim());
   }
 };
 
 // Export logger methods
-export const logError = (error: Error | string, meta?: any) => {
+export const logError = (error: Error | string, meta?: Record<string, unknown>): void => {
   if (error instanceof Error) {
     logger.error(error.message, { stack: error.stack, ...meta });
   } else {
@@ -115,24 +115,24 @@ export const logError = (error: Error | string, meta?: any) => {
   }
 };
 
-export const logWarn = (message: string, meta?: any) => {
+export const logWarn = (message: string, meta?: Record<string, unknown>): void => {
   logger.warn(message, meta);
 };
 
-export const logInfo = (message: string, meta?: any) => {
+export const logInfo = (message: string, meta?: Record<string, unknown>): void => {
   logger.info(message, meta);
 };
 
-export const logDebug = (message: string, meta?: any) => {
+export const logDebug = (message: string, meta?: Record<string, unknown>): void => {
   logger.debug(message, meta);
 };
 
-export const logVerbose = (message: string, meta?: any) => {
+export const logVerbose = (message: string, meta?: Record<string, unknown>): void => {
   logger.verbose(message, meta);
 };
 
 // Log unhandled rejections and exceptions
-process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
   logger.error('Unhandled Rejection at:', { promise, reason });
 });
 
@@ -140,6 +140,7 @@ process.on('uncaughtException', (error: Error) => {
   logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
   // Give Winston time to log before exiting
   setTimeout(() => {
+    // eslint-disable-next-line n/no-process-exit
     process.exit(1);
   }, 1000);
 });

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import {
   IndustryItemRepository,
   IndustrySourceRepository,
@@ -18,8 +18,8 @@ import {
  */
 export class RepositoryFactory {
   private static instance: RepositoryFactory;
-  private prisma: PrismaClient;
-  private repositories: Map<string, any>;
+  private readonly prisma: PrismaClient;
+  private readonly repositories: Map<string, any>;
 
   private constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -166,7 +166,7 @@ export class RepositoryFactory {
  */
 export class DIContainer {
   private static instance: DIContainer;
-  private repositoryFactory: RepositoryFactory;
+  private readonly repositoryFactory: RepositoryFactory;
 
   private constructor(prisma: PrismaClient) {
     this.repositoryFactory = RepositoryFactory.getInstance(prisma);

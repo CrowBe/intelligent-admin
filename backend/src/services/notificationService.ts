@@ -40,11 +40,11 @@ const NotificationPreferenceSchema = z.object({
 export type NotificationPreference = z.infer<typeof NotificationPreferenceSchema>;
 
 export class NotificationService {
-  private preferenceRepo: NotificationPreferenceRepository;
-  private tokenRepo: NotificationTokenRepository;
-  private logRepo: NotificationLogRepository;
-  private emailRepo: EmailAnalysisRepository;
-  private taskRepo: TaskRepository;
+  private readonly preferenceRepo: NotificationPreferenceRepository;
+  private readonly tokenRepo: NotificationTokenRepository;
+  private readonly logRepo: NotificationLogRepository;
+  private readonly emailRepo: EmailAnalysisRepository;
+  private readonly taskRepo: TaskRepository;
 
   constructor() {
     const container = DIContainer.getInstance();

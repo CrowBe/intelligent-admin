@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
 // Email priority levels
@@ -73,7 +73,7 @@ export interface EmailAnalysis {
 }
 
 export class EmailUrgencyDetectionService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
   /**
    * Analyze email urgency and categorize
@@ -372,7 +372,7 @@ export class EmailUrgencyDetectionService {
         break;
     }
     
-    return reasons.join('. ') + '.';
+    return `${reasons.join('. ')  }.`;
   }
 
   /**

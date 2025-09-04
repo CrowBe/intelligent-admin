@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { RepositoryFactory } from './RepositoryFactory.js';
 
 /**
@@ -6,8 +6,8 @@ import { RepositoryFactory } from './RepositoryFactory.js';
  * across multiple repositories
  */
 export class UnitOfWork {
-  private prisma: PrismaClient;
-  private repositoryFactory: RepositoryFactory;
+  private readonly prisma: PrismaClient;
+  private readonly repositoryFactory: RepositoryFactory;
   private isInTransaction: boolean = false;
 
   constructor(prisma: PrismaClient) {
@@ -37,7 +37,7 @@ export class UnitOfWork {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         // Create a new UnitOfWork with the transaction client
-        const transactionalUow = new UnitOfWork(tx as PrismaClient);
+        const transactionalUow = new UnitOfWork(tx);
         transactionalUow.isInTransaction = true;
         return await work(transactionalUow);
       });

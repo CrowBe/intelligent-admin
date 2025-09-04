@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NotificationService } from './notificationService';
-import { EmailAnalysisService } from './emailUrgencyDetection';
+import { EmailUrgencyDetectionService } from './emailUrgencyDetection';
 import { OnboardingService } from './onboardingService';
 import { SchedulerService } from './scheduler';
 
@@ -61,7 +61,7 @@ describe('Services Integration Tests', () => {
 
     beforeEach(() => {
       mockPrisma = createMockPrisma();
-      service = new NotificationService(mockPrisma);
+      service = new NotificationService();
     });
 
     it('should initialize and handle basic operations', async () => {
@@ -123,7 +123,7 @@ describe('Services Integration Tests', () => {
 
     beforeEach(() => {
       mockPrisma = createMockPrisma();
-      service = new EmailAnalysisService(mockPrisma);
+      service = new EmailUrgencyDetectionService(mockPrisma);
     });
 
     it('should analyze email urgency correctly', () => {
@@ -199,7 +199,7 @@ describe('Services Integration Tests', () => {
 
     beforeEach(() => {
       mockPrisma = createMockPrisma();
-      service = new OnboardingService(mockPrisma);
+      service = new OnboardingService();
     });
 
     it('should manage onboarding progress', async () => {
@@ -320,9 +320,9 @@ describe('Services Integration Tests', () => {
       const mockPrisma = createMockPrisma();
       
       // Initialize all services
-      const notificationService = new NotificationService(mockPrisma);
-      const emailService = new EmailAnalysisService(mockPrisma);
-      const onboardingService = new OnboardingService(mockPrisma);
+      const notificationService = new NotificationService();
+      const emailService = new EmailUrgencyDetectionService(mockPrisma);
+      const onboardingService = new OnboardingService();
       const schedulerService = new SchedulerService(mockPrisma);
 
       // Example: Schedule a notification based on email urgency

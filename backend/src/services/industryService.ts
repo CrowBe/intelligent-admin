@@ -1,10 +1,10 @@
-import { ContentType } from '@prisma/client';
-import { IndustryItemRepository, IndustrySourceRepository } from '../repositories/IndustryRepository.js';
+import type { ContentType } from '@prisma/client';
+import type { IndustryItemRepository, IndustrySourceRepository } from '../repositories/IndustryRepository.js';
 import { DIContainer } from '../repositories/RepositoryFactory.js';
 
 export class IndustryService {
-  private itemRepository: IndustryItemRepository;
-  private sourceRepository: IndustrySourceRepository;
+  private readonly itemRepository: IndustryItemRepository;
+  private readonly sourceRepository: IndustrySourceRepository;
   
   constructor() {
     const container = DIContainer.getInstance();

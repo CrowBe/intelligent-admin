@@ -1,19 +1,21 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { NotificationService } from './notificationService.js';
+import { fileUploadService } from './fileUpload.js';
+import { logInfo, logError } from '../utils/logger.js';
 
 export class SchedulerService {
-  private intervals: Map<string, NodeJS.Timeout> = new Map();
-  private notificationService: NotificationService;
+  private readonly intervals: Map<string, NodeJS.Timeout> = new Map();
+  private readonly notificationService: NotificationService;
 
-  constructor(private prisma: PrismaClient) {
-    this.notificationService = new NotificationService(prisma);
+  constructor(private readonly prisma: PrismaClient) {
+    this.notificationService = new NotificationService();
   }
 
   /**
    * Start the scheduler
    */
   start() {
-    console.log('🕐 Scheduler service started');
+    logInfo('🕐 Scheduler service started');
     
     // Schedule morning briefs check every 5 minutes
     this.scheduleTask('morning-briefs', 5 * 60 * 1000, () => {
@@ -30,6 +32,11 @@ export class SchedulerService {
       this.checkTaskReminders();
     });
 
+    // Schedule file cleanup every hour
+    this.scheduleTask('file-cleanup', 60 * 60 * 1000, () => {
+      this.cleanupOldFiles();
+    });
+
     // Initial run
     this.checkAndSendMorningBriefs();
   }
@@ -38,9 +45,9 @@ export class SchedulerService {
    * Stop the scheduler
    */
   stop() {
-    console.log('🛑 Scheduler service stopping');
+    logInfo('🛑 Scheduler service stopping');
     this.intervals.forEach((interval, name) => {
-      console.log(`Clearing scheduled task: ${name}`);
+      logInfo(`Clearing scheduled task: ${name}`);
       clearInterval(interval);
     });
     this.intervals.clear();
@@ -59,10 +66,10 @@ export class SchedulerService {
     // Set new interval
     const interval = setInterval(async () => {
       try {
-        console.log(`Running scheduled task: ${name}`);
+        logInfo(`Running scheduled task: ${name}`);
         await task();
       } catch (error) {
-        console.error(`Error in scheduled task ${name}:`, error);
+        logError(`Error in scheduled task ${name}:`, error instanceof Error ? error : new Error(String(error)));
       }
     }, intervalMs);
 
@@ -82,12 +89,12 @@ export class SchedulerService {
       return;
     }
 
-    console.log(`Checking morning briefs at ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+    logInfo(`Checking morning briefs at ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
     
     try {
       await this.notificationService.scheduleMorningBriefs();
     } catch (error) {
-      console.error('Error scheduling morning briefs:', error);
+      logError('Error scheduling morning briefs:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -136,7 +143,7 @@ export class SchedulerService {
         }
       }
     } catch (error) {
-      console.error('Error checking urgent emails:', error);
+      logError('Error checking urgent emails:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -188,7 +195,21 @@ export class SchedulerService {
         }
       }
     } catch (error) {
-      console.error('Error checking task reminders:', error);
+      logError('Error checking task reminders:', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Clean up old uploaded files
+   */
+  private async cleanupOldFiles() {
+    try {
+      logInfo('Running scheduled file cleanup');
+      await fileUploadService.ensureUploadDirectories();
+      const cleanedCount = await fileUploadService.cleanupOldFiles(24);
+      logInfo(`File cleanup completed: removed ${cleanedCount} old files`);
+    } catch (error) {
+      logError('Error during scheduled file cleanup:', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -198,10 +219,10 @@ export class SchedulerService {
   scheduleOnce(name: string, delayMs: number, task: () => void | Promise<void>) {
     setTimeout(async () => {
       try {
-        console.log(`Running one-time task: ${name}`);
+        logInfo(`Running one-time task: ${name}`);
         await task();
       } catch (error) {
-        console.error(`Error in one-time task ${name}:`, error);
+        logError(`Error in one-time task ${name}:`, error instanceof Error ? error : new Error(String(error)));
       }
     }, delayMs);
   }
