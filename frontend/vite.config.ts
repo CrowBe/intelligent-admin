@@ -2,10 +2,21 @@ import path from "path"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    visualizer({
+      template: 'treemap', // or 'sunburst', 'network'
+      open: false, // Don't auto-open in browser
+      gzipSize: true,
+      brotliSize: true,
+      filename: 'dist/stats.html', // Output file
+    })
+  ],
   server: {
     port: 5173,
     host: true,

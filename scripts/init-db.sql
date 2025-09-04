@@ -1,15 +1,11 @@
 -- Initialize database for intelligent admin
 -- This script runs when the PostgreSQL container starts
 
--- Create database if it doesn't exist (though it's created by environment variables)
--- CREATE DATABASE IF NOT EXISTS intelligent_admin_dev;
+-- Create extensions needed for full-text search and performance
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Trigram matching for text search
+CREATE EXTENSION IF NOT EXISTS "unaccent"; -- Remove accents for better search
 
--- Create extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
-
--- Set timezone
+-- Set timezone for Australian businesses
 SET timezone = 'Australia/Sydney';
 
--- Create basic tables (Prisma will handle migrations, but this ensures extensions)
 -- Prisma migrations will create the actual schema

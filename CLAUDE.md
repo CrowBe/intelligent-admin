@@ -14,7 +14,7 @@ This is an AI-driven administrative assistant application for small trade busine
 ## Core Application Requirements
 
 **Objective**:  
-Develop an AI-driven application that acts as a centralized administrative assistant for small trade businesses in Australia. The application will feature an AI chat interface, accessible from both mobile and desktop devices, to manage administrative tasks. It will recommend and connect to external applications (e.g., Gmail, Calendar, HubSpot) through an AI-curated library of **MCP (Model Context Protocol)** servers, which enable the main AI agent to interface with specialized agents for specific tasks. Users will authenticate securely to these applications, and the app will process industry standards and business information from URLs or uploaded files to maintain persistent context.
+Develop an AI-driven application that acts as a centralized administrative assistant for small trade businesses in Australia. The application features a single-screen AI chat interface, accessible from both mobile and desktop devices, to manage administrative tasks. The system currently integrates with Gmail and handles document processing, with future plans for Calendar and other service integrations via MCP (Model Context Protocol) when needed. Users authenticate securely to these applications, and the app processes industry standards and business information from URLs or uploaded files to maintain persistent context.
 
 ---
 
@@ -52,9 +52,10 @@ Develop an AI-driven application that acts as a centralized administrative assis
    - Stores user profiles, authentication tokens, and extracted business data securely.
    - Supports retrieval of historical data to enhance AI performance.
 
-7. **MCP Server Library**:
-   - A collection of specialized agents for tasks like email integration or document handling.
-   - AI dynamically selects and interfaces with these agents via the **Model Context Protocol**.
+7. **Service Integration Layer**:
+   - Gmail integration for email management and analysis
+   - Document processing for industry knowledge extraction
+   - Future MCP integrations planned for Calendar and other services
 
 ---
 
@@ -83,10 +84,11 @@ The application will use a modular architecture for scalability and ease of deve
   - Stores structured data (e.g., PostgreSQL) or flexible unstructured data (e.g., MongoDB).
   - Holds user data, tokens, and persistent context.
 
-- **MCP Agents**:
+- **Service Layer**:
 
-  - Specialized agents for specific tasks (e.g., Gmail API calls, file parsing).
-  - Communicate with the AI engine via the Model Context Protocol.
+  - Gmail service for email operations and analysis
+  - Document processing service for OCR and content extraction
+  - Industry knowledge service for Australian trade information
 
 - **Security Layer**:
   - Implements OAuth 2.0 for secure external app access.
@@ -187,10 +189,10 @@ The application will use a modular architecture for scalability and ease of deve
    - Enable document uploads and URL ingestion.
    - Process and store extracted data for persistent context.
 
-4. **Phase 4: MCP Integration**
+4. **Phase 4: Advanced Integrations**
 
-   - Define the MCP server library and connect specialized agents.
-   - Test AI-driven agent selection and task execution.
+   - Implement Calendar integration for scheduling coordination
+   - Add additional service integrations as needed
 
 5. **Phase 5: Refinement**
    - Perform unit, integration, and user testing.
@@ -212,22 +214,110 @@ The application will use a modular architecture for scalability and ease of deve
 ## Development Instructions for Claude Code
 
 ### Current Development Phase
-We are in **Phase 1: Foundation & Core Chat** (see `/docs/development-roadmap.md`)
+We are in **Phase 2: Email Intelligence & Industry Knowledge** (see `/docs/development-roadmap.md` and WARP.md)
 
 ### Immediate Next Steps
-1. **Project Structure Setup**: Create the monorepo structure as defined in `/docs/project-structure.md`
-2. **Environment Setup**: Follow `/docs/development-environment.md` for local development
-3. **Database Schema**: Implement the schema from `/docs/data-models.md`
-4. **API Foundation**: Build REST endpoints per `/docs/api-documentation.md`
-5. **Frontend Scaffold**: Create React components for chat interface
+1. **Email Intelligence**: Complete Gmail OAuth flow and urgency detection system
+2. **Push Notifications**: Implement Firebase integration for Morning Brief notifications  
+3. **Industry Knowledge**: Integrate Australian trade standards and regulations
+4. **Mobile Optimization**: Improve touch-first interface for field professionals
+5. **User Onboarding**: Build progressive disclosure flow for new users
 
 ### Key Implementation Guidelines
 
 #### Code Quality Standards
 - **TypeScript**: Strict mode enabled throughout
-- **Testing**: Minimum 80% code coverage
-- **Linting**: ESLint + Prettier configuration
+- **Testing**: Minimum 80% code coverage with co-located test files
+- **Linting**: ESLint + Prettier configuration with strict rules (see Linting Configuration below)
 - **Architecture**: Follow microservices patterns from `/docs/system-architecture.md`
+- **Component Organization**: Co-located structure (see Component Standards below)
+
+#### Linting Configuration
+The project uses a strict, consistent ESLint configuration across all modules:
+
+**Applied Rules:**
+- **TypeScript Strict Mode**: `no-explicit-any` (error), `explicit-function-return-type` (error)
+- **Code Complexity**: Cyclomatic complexity max 10, nesting depth max 4 (warnings)
+- **File Limits**: Max 300 lines per file, max 50 lines per function (warnings, excluding blanks/comments)
+- **Function Limits**: Max 4 parameters per function (warning)
+- **Security**: Node.js security vulnerabilities detection (backend only)
+- **React/A11y**: Accessibility and React best practices (frontend only)
+- **Import/Export**: Consistent type imports, no duplicate imports
+
+**Module-Specific Configurations:**
+- **Root** (`eslint.config.js`): Base TypeScript strict rules for all files
+- **Frontend** (`frontend/eslint.config.js`): React, JSX, accessibility rules
+- **Backend** (`backend/eslint.config.js`): Node.js and security-specific rules
+- **Shared** (`shared/eslint.config.js`): TypeScript library rules
+
+**Linting Automation Options:**
+1. **Lint-on-Save** (Recommended): Configure your IDE to run ESLint on file save
+   - VS Code: Install ESLint extension, enable `eslint.codeActionsOnSave`
+   - Provides immediate feedback during development
+   
+2. **CI/CD Integration**: ESLint checks in GitHub Actions workflow
+   - Prevents merging code with linting violations
+   - Run `npm run lint` in CI pipeline
+
+**Manual Linting Commands:**
+- `npm run lint` - Check all files
+- `npm run lint:fix` - Auto-fix where possible
+- `npx eslint path/to/file.ts` - Check specific file
+
+#### Component Organization Standards
+
+**Co-located Component Structure** (shadcn-ui Compatible):
+```
+src/components/ui/
+├── button/
+│   ├── index.ts              # Re-exports: export { Button } from './Button'
+│   ├── Button.tsx            # Component implementation
+│   ├── Button.stories.tsx    # Storybook visual testing
+│   └── Button.test.tsx       # Vitest unit tests
+├── card/
+│   ├── index.ts
+│   ├── Card.tsx
+│   ├── Card.stories.tsx
+│   └── Card.test.tsx
+```
+
+**shadcn-ui Compatibility Maintained:**
+- ✅ Import paths unchanged: `import { Button } from '@/components/ui/button'`
+- ✅ CLI commands work: `npx shadcn add button`
+- ✅ Path aliases preserved: `@/components` → `src/components`
+- ✅ TypeScript strict mode compatible
+
+**File Naming Conventions:**
+- **Components**: PascalCase (e.g., `Button.tsx`, `ChatMessage.tsx`)
+- **Stories**: `ComponentName.stories.tsx`
+- **Tests**: `ComponentName.test.tsx`
+- **Re-exports**: `index.ts` (lowercase)
+
+**Import Guidelines:**
+```typescript
+// ✅ Within component folder: relative imports
+import { Button } from './Button';
+
+// ✅ External components: path aliases
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+// ✅ External libraries: direct imports
+import { cva, type VariantProps } from 'class-variance-authority';
+```
+
+**Component Development Workflow:**
+1. **Create Component**: Implement in `ComponentName.tsx`
+2. **Add Re-exports**: Update `index.ts` for clean imports
+3. **Write Stories**: Create comprehensive Storybook stories
+4. **Write Tests**: Add unit tests with good coverage
+5. **Update UI Index**: Add to main `src/components/ui/index.ts`
+
+**Testing Co-location Benefits:**
+- Related files stay together during refactoring
+- Easier code review (all changes in one folder)
+- Better development experience (less file switching)
+- Clear component ownership and boundaries
 
 #### Security Requirements
 - **Authentication**: JWT with refresh tokens
@@ -243,12 +333,12 @@ We are in **Phase 1: Foundation & Core Chat** (see `/docs/development-roadmap.md
 - **Concurrent Users**: Support 1000+ users
 
 ### File Structure Priority
-When building, focus on this order:
-1. `/packages/shared/` - Common types and utilities
-2. `/packages/backend/` - API server with authentication
-3. `/packages/frontend/` - React chat interface
-4. `/packages/ai-engine/` - AI processing service
-5. Integration services (after MVP)
+Current monorepo structure (focus areas):
+1. `backend/src/services/` - Email intelligence and industry knowledge services
+2. `frontend/src/components/` - Chat interface and mobile optimization
+3. `backend/src/routes/` - API endpoints for email analysis and notifications
+4. `shared/src/types/` - Common TypeScript interfaces
+5. Database schema in `backend/prisma/` - already implemented
 
 ### Testing Strategy
 - **Unit Tests**: All service functions
@@ -264,9 +354,20 @@ When building, focus on this order:
 - **CI/CD**: GitHub Actions for automated testing and deployment
 
 ### External Dependencies
-- **AI Models**: Hugging Face Transformers or OpenAI API
-- **Databases**: PostgreSQL (primary), Redis (cache)
-- **OAuth Providers**: Google, Microsoft for integrations
-- **File Storage**: Local filesystem initially, S3-compatible later
+- **AI Models**: OpenAI API (GPT-4/3.5-turbo) for chat and analysis
+- **Databases**: PostgreSQL (production), Redis (cache/sessions)
+- **OAuth Providers**: Kinde (auth) + Google (Gmail integration)
+- **Notifications**: Firebase for push notifications
+- **File Storage**: Local filesystem (development), cloud storage (production)
 
-This comprehensive planning provides a solid foundation for building the AI-powered administrative assistant application systematically and efficiently.
+### Current Implementation Status
+- ✅ **Foundation**: React + Express.js + PostgreSQL architecture complete
+- ✅ **Core Chat**: AI-powered conversation interface implemented
+- ✅ **Authentication**: Kinde + Google OAuth flows working
+- ✅ **Database**: Prisma schema with email analysis and industry knowledge models
+- 🔄 **Email Intelligence**: Gmail integration and urgency detection in progress
+- 🔄 **Industry Knowledge**: Australian trade regulations integration in progress
+- ⏳ **Push Notifications**: Firebase integration pending
+- ⏳ **Mobile UX**: Touch-first interface optimizations pending
+
+This reflects the current state of an actively developed trade business administrative assistant with core functionality implemented and Phase 2 features in progress.

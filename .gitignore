@@ -49,9 +49,18 @@ pids/
 # Prisma
 /prisma/generated
 
-# Uploads
-uploads/
+# File uploads and temporary files
+# Ignore all uploaded files but keep directory structure
+uploads/temp/
+uploads/processed/
+backend/uploads/temp/
+backend/uploads/processed/
 test-uploads/
+backend/test-uploads/
+
+# Keep upload directory structure for deployment
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
 
 # OS generated files
 .DS_Store
@@ -85,3 +94,6 @@ Thumbs.db
 /tmp/
 /temp/
 intelligent-admin-firebase-adminsdk-*.json
+
+*storybook.log
+storybook-static

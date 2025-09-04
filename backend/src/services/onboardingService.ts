@@ -1,5 +1,10 @@
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { DIContainer } from '../repositories/RepositoryFactory.js';
+import type { 
+  OnboardingProgressRepository,
+  UserPreferenceRepository,
+  UserRepository
+} from '../repositories/index.js';
 
 // Onboarding steps
 export enum OnboardingStep {
@@ -41,17 +46,23 @@ const BusinessProfileSchema = z.object({
 export type BusinessProfile = z.infer<typeof BusinessProfileSchema>;
 
 export class OnboardingService {
-  constructor(private prisma: PrismaClient) {}
+  private readonly progressRepo: OnboardingProgressRepository;
+  private readonly preferenceRepo: UserPreferenceRepository;
+  private readonly userRepo: UserRepository;
+
+  constructor() {
+    const container = DIContainer.getInstance();
+    this.progressRepo = container.onboardingProgress;
+    this.preferenceRepo = container.userPreference;
+    this.userRepo = container.user;
+  }
 
   /**
    * Get or create onboarding progress for a user
    */
   async getProgress(userId: string) {
     // Get all completed steps
-    const steps = await this.prisma.onboardingProgress.findMany({
-      where: { userId },
-      orderBy: { completedAt: 'asc' }
-    });
+    const steps = await this.progressRepo.findByUserId(userId);
 
     // Determine current step
     const completedSteps = steps.filter(s => s.completedAt).map(s => s.step);
@@ -76,35 +87,14 @@ export class OnboardingService {
    */
   async completeStep(userId: string, step: OnboardingStep, data?: any) {
     // Check if step already completed
-    const existing = await this.prisma.onboardingProgress.findFirst({
-      where: { userId, step }
-    });
+    const existing = await this.progressRepo.findByUserAndStep(userId, step);
 
     if (existing?.completedAt) {
       return existing; // Already completed
     }
 
     // Create or update the step
-    const progress = await this.prisma.onboardingProgress.upsert({
-      where: {
-        userId_step: {
-          userId,
-          step
-        }
-      },
-      update: {
-        completedAt: new Date(),
-        data: data || {},
-        skipped: false
-      },
-      create: {
-        userId,
-        step,
-        completedAt: new Date(),
-        data: data || {},
-        skipped: false
-      }
-    });
+    const progress = await this.progressRepo.markStepCompleted(userId, step, data);
 
     // Check if all steps are complete
     await this.checkAndCompleteOnboarding(userId);
@@ -116,24 +106,7 @@ export class OnboardingService {
    * Skip a step
    */
   async skipStep(userId: string, step: OnboardingStep) {
-    const progress = await this.prisma.onboardingProgress.upsert({
-      where: {
-        userId_step: {
-          userId,
-          step
-        }
-      },
-      update: {
-        skipped: true,
-        completedAt: new Date()
-      },
-      create: {
-        userId,
-        step,
-        skipped: true,
-        completedAt: new Date()
-      }
-    });
+    const progress = await this.progressRepo.markStepSkipped(userId, step);
 
     // Check if all steps are complete/skipped
     await this.checkAndCompleteOnboarding(userId);
@@ -148,18 +121,7 @@ export class OnboardingService {
     const validated = BusinessProfileSchema.parse(profile);
     
     // Save to user preferences or profile
-    await this.prisma.userPreference.upsert({
-      where: { userId },
-      update: {
-        businessProfile: validated as any,
-        updatedAt: new Date()
-      },
-      create: {
-        userId,
-        businessProfile: validated as any,
-        preferences: {}
-      }
-    });
+    await this.preferenceRepo.updateBusinessProfile(userId, validated);
 
     // Mark business profile step as complete
     await this.completeStep(userId, OnboardingStep.BUSINESS_PROFILE, validated);
@@ -171,10 +133,7 @@ export class OnboardingService {
    * Get business profile
    */
   async getBusinessProfile(userId: string): Promise<BusinessProfile | null> {
-    const prefs = await this.prisma.userPreference.findUnique({
-      where: { userId }
-    });
-
+    const prefs = await this.preferenceRepo.findByUserId(userId);
     return prefs?.businessProfile as BusinessProfile | null;
   }
 
@@ -234,7 +193,7 @@ export class OnboardingService {
    * Calculate total onboarding time
    */
   private calculateOnboardingTime(steps: any[]): number {
-    if (steps.length < 2) return 0;
+    if (steps.length < 2) {return 0;}
     
     const sorted = steps.sort((a, b) => 
       new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
@@ -335,10 +294,7 @@ export class OnboardingService {
    * Reset onboarding (for testing or re-onboarding)
    */
   async resetOnboarding(userId: string) {
-    await this.prisma.onboardingProgress.deleteMany({
-      where: { userId }
-    });
-
+    await this.progressRepo.deleteMany({ userId } as any);
     return { message: 'Onboarding reset successfully' };
   }
 
@@ -346,22 +302,25 @@ export class OnboardingService {
    * Get onboarding statistics
    */
   async getStats() {
-    const totalUsers = await this.prisma.user.count();
-    const completedOnboarding = await this.prisma.onboardingProgress.count({
-      where: { step: OnboardingStep.COMPLETED }
-    });
+    const totalUsers = await this.userRepo.count();
+    const completedOnboarding = await this.progressRepo.count({
+      step: OnboardingStep.COMPLETED
+    } as any);
 
-    const stepCompletion = await this.prisma.onboardingProgress.groupBy({
-      by: ['step'],
-      _count: true
-    });
+    // For complex aggregations, we'll use the base repository's executeRaw method
+    // or fetch all and process in memory for now
+    const allProgress = await this.progressRepo.findAll();
+    const stepCompletion = allProgress.reduce((acc, curr) => {
+      const step = curr.step;
+      acc[step] = (acc[step] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-    const averageTime = await this.prisma.onboardingProgress.findMany({
-      where: { step: OnboardingStep.COMPLETED },
-      select: { data: true }
-    });
+    const completedSteps = await this.progressRepo.findAll(
+      { step: OnboardingStep.COMPLETED } as any
+    );
 
-    const times = averageTime
+    const times = completedSteps
       .map(p => (p.data as any)?.totalTimeMinutes)
       .filter(t => t);
     
@@ -373,9 +332,9 @@ export class OnboardingService {
       totalUsers,
       completedOnboarding,
       completionRate: totalUsers > 0 ? (completedOnboarding / totalUsers) * 100 : 0,
-      stepCompletion: stepCompletion.map(s => ({
-        step: s.step,
-        count: s._count
+      stepCompletion: Object.entries(stepCompletion).map(([step, count]) => ({
+        step,
+        count
       })),
       averageCompletionTimeMinutes: Math.round(avgMinutes)
     };

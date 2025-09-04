@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import request from 'supertest';
-import { app } from '../index';
+import { describe, it, beforeAll, afterAll } from 'vitest';
 
 describe('API Integration Tests', () => {
-  let server: any;
-  let authToken: string;
+  // These variables will be used when tests are implemented
+  // let server: Express.Application;
+  // let authToken: string;
 
   beforeAll(async () => {
     // TODO: Start test server
