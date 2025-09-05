@@ -1,709 +1,928 @@
 # API Documentation
 
-## API Design Principles
+## Overview
+This document describes the REST API for the AI-powered Administrative Assistant application. The API provides endpoints for email analysis, industry intelligence, notifications, user onboarding, and administrative functions.
 
-### RESTful Design
-- Resource-based URLs
-- HTTP methods for operations (GET, POST, PUT, DELETE)
-- Consistent response formats
-- Proper HTTP status codes
-- Stateless design
+## Base Configuration
 
-### API Versioning
-- Version in URL: `/api/v1/`
-- Backward compatibility maintained
-- Deprecation notices for old versions
+### Base URLs
+```
+Development: http://localhost:3001/api/v1
+Production: https://api.yourdomain.com/api/v1
+Health Check: http://localhost:3001/health
+```
 
 ### Authentication
-- JWT Bearer tokens in Authorization header
-- OAuth 2.0 for external integrations
-- Refresh token mechanism
+The API uses JWT Bearer token authentication:
 
-## Base URL
+**Request Header:**
 ```
-Development: http://localhost:3000/api/v1
-Production: https://api.yourdomain.com/api/v1
+Authorization: Bearer <jwt-token>
 ```
 
-## Common Response Format
+**Authentication Flow:**
+1. Obtain JWT token from Kinde authentication service
+2. Include token in Authorization header for protected endpoints
+3. Token contains user ID and email for request context
 
-### Success Response
-```json
+### Response Format
+
+**Success Response:**
+```typescript
 {
-  "success": true,
-  "data": {
-    // Response data
-  },
-  "message": "Operation completed successfully",
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-### Error Response
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input data",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email is required"
-      }
-    ]
-  },
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-## Authentication Endpoints
-
-### POST /auth/register
-Register a new user account.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "businessName": "ABC Trade Co",
-  "businessType": "plumbing",
-  "firstName": "John",
-  "lastName": "Doe"
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid",
-      "email": "user@example.com",
-      "businessName": "ABC Trade Co",
-      "businessType": "plumbing",
-      "firstName": "John",
-      "lastName": "Doe",
-      "createdAt": "2024-01-15T10:30:00Z"
-    },
-    "tokens": {
-      "accessToken": "jwt-token",
-      "refreshToken": "refresh-token",
-      "expiresIn": 86400
-    }
+  success: true,
+  data: {
+    // Response data varies by endpoint
   }
 }
 ```
 
-### POST /auth/login
-Authenticate user credentials.
-
-**Request Body:**
-```json
+**Error Response:**
+```typescript
 {
-  "email": "user@example.com",
-  "password": "securePassword123"
+  error: string,
+  message?: string,
+  details?: string | object[]
 }
 ```
 
-**Response (200):**
-```json
+### Rate Limiting
+- **API Routes:** 100 requests per 15-minute window
+- **Auth Routes:** 5 login attempts per 15 minutes, 3 registrations per hour
+- **File Upload:** 10 requests per hour
+- Rate limit headers included in responses
+
+## Email Intelligence API
+
+### POST /api/v1/emails/analyze
+Analyze individual emails or batch of emails for urgency and priority.
+
+**Authentication:** Required  
+**Content-Type:** application/json
+
+**Single Email Request:**
+```typescript
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid",
-      "email": "user@example.com",
-      "businessName": "ABC Trade Co",
-      "businessType": "plumbing"
-    },
-    "tokens": {
-      "accessToken": "jwt-token",
-      "refreshToken": "refresh-token",
-      "expiresIn": 86400
-    }
+  emailId: string;
+  subject: string;
+  from: string;
+  snippet: string;
+  bodyPreview?: string;
+  receivedAt: string; // ISO date string
+}
+```
+
+**Batch Email Request:**
+```typescript
+{
+  emails: Array<{
+    id: string;
+    subject: string;
+    from: string;
+    snippet: string;
+    date: string; // ISO date string
+    isRead?: boolean;
+  }>;
+  preferences?: any;
+}
+```
+
+**Response:**
+```typescript
+// Single email
+{
+  analysis: {
+    priority: 'urgent' | 'high' | 'normal' | 'low';
+    category: 'urgent' | 'standard' | 'follow-up' | 'admin' | 'spam';
+    actionRequired: boolean;
+    confidence: number;
+    reasoning: string;
+    suggestedActions: string[];
+  }
+}
+
+// Batch emails
+{
+  success: true,
+  data: {
+    totalEmails: number;
+    analyzedEmails: Array<{
+      // Original email data plus analysis
+      analysis: EmailAnalysis;
+    }>;
+    summary: {
+      urgentCount: number;
+      highPriorityCount: number;
+      actionRequiredCount: number;
+      categoryCounts: Record<string, number>;
+    };
   }
 }
 ```
 
-### POST /auth/refresh
-Refresh access token using refresh token.
+### POST /api/v1/emails/analyze-batch
+Legacy endpoint for batch email analysis.
 
-**Request Body:**
-```json
+**Authentication:** Required
+
+**Request:**
+```typescript
 {
-  "refreshToken": "refresh-token"
+  emails: Array<{
+    emailId: string;
+    subject: string;
+    from: string;
+    snippet: string;
+    bodyPreview?: string;
+    receivedAt: string;
+  }>
 }
 ```
 
-**Response (200):**
-```json
+**Response:**
+```typescript
 {
-  "success": true,
-  "data": {
-    "accessToken": "new-jwt-token",
-    "expiresIn": 86400
+  analyses: EmailAnalysis[]
+}
+```
+
+### GET /api/v1/emails/analyses/:userId
+Get recent email analyses for a user.
+
+**Authentication:** Required + User Ownership Validation  
+**Parameters:**
+- `userId` (path): User ID
+- `limit` (query): Number of analyses to return (default: 50)
+
+**Response:**
+```typescript
+{
+  analyses: Array<{
+    id: string;
+    emailId: string;
+    userId: string;
+    priority: string;
+    category: string;
+    actionRequired: boolean;
+    confidence: number;
+    reasoning: string;
+    suggestedActions: string[];
+    analyzedAt: string;
+  }>
+}
+```
+
+### GET /api/v1/emails/analysis/:emailId
+Get analysis for a specific email by email ID.
+
+**Authentication:** None  
+**Parameters:**
+- `emailId` (path): Email identifier
+
+**Response:**
+```typescript
+{
+  analysis: EmailAnalysis | null
+}
+```
+
+**Status Codes:**
+- `200`: Analysis found
+- `404`: Analysis not found
+
+### GET /api/v1/emails/urgent/:userId
+Get urgent emails for a user.
+
+**Authentication:** Required + User Ownership Validation  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  urgentEmails: EmailAnalysis[] // Up to 20 most recent urgent emails
+}
+```
+
+### GET /api/v1/emails/stats/:userId
+Get email analysis statistics for a user.
+
+**Authentication:** Required + User Ownership Validation  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  stats: {
+    total: number;
+    urgent: number;
+    actionRequired: number;
+    categories: Array<{
+      category: string;
+      count: number;
+    }>;
   }
 }
 ```
 
-### POST /auth/logout
-Logout user and invalidate tokens.
+## Industry Intelligence API
 
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
+### GET /api/v1/industry/stats
+Get industry knowledge statistics.
 
-**Response (200):**
-```json
+**Authentication:** None
+
+**Response:**
+```typescript
 {
-  "success": true,
-  "message": "Logged out successfully"
+  totalItems: number;
+  categories: Record<string, number>;
+  sources: Record<string, number>;
+  lastUpdated: string;
 }
 ```
 
-## Chat Endpoints
+### GET /api/v1/industry/categories
+Get available industry categories.
 
-### GET /chat/sessions
-Get user's chat sessions.
+**Authentication:** None
 
-**Headers:**
+**Response:**
+```typescript
+{
+  categories: string[];
+  timestamp: string;
+}
 ```
-Authorization: Bearer jwt-token
+
+### GET /api/v1/industry/sources
+Get industry information sources.
+
+**Authentication:** None
+
+**Response:**
+```typescript
+{
+  sources: string[];
+  timestamp: string;
+}
 ```
 
+### GET /api/v1/industry/search
+Search industry knowledge base.
+
+**Authentication:** None  
 **Query Parameters:**
-- `limit` (optional): Number of sessions to return (default: 20)
-- `offset` (optional): Pagination offset (default: 0)
+- `q`: Search query string
+- `limit`: Number of results (default: 10)
 
-**Response (200):**
-```json
+**Response:**
+```typescript
 {
-  "success": true,
-  "data": {
-    "sessions": [
-      {
-        "id": "session-uuid",
-        "title": "Gmail Integration Setup",
-        "lastMessage": "Integration completed successfully",
-        "lastActivity": "2024-01-15T10:30:00Z",
-        "messageCount": 15
-      }
-    ],
-    "pagination": {
-      "total": 50,
-      "limit": 20,
-      "offset": 0,
-      "hasMore": true
+  results: Array<{
+    id: string;
+    title: string;
+    content: string;
+    category: string;
+    source: string;
+    relevanceScore: number;
+    updatedAt: string;
+  }>;
+  totalResults: number;
+  query: string;
+}
+```
+
+### POST /api/v1/industry/update
+Trigger knowledge base update (admin function).
+
+**Authentication:** None
+
+**Response:**
+```typescript
+{
+  success: boolean;
+  itemsUpdated: number;
+  timestamp: string;
+}
+```
+
+## Notifications API
+
+### GET /api/v1/notifications/preferences/:userId
+Get user's notification preferences.
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  preferences: {
+    id: string;
+    userId: string;
+    type: 'MORNING_BRIEF' | 'URGENT_EMAIL' | 'WEEKLY_SUMMARY' | 'CUSTOM';
+    enabled: boolean;
+    timing?: {
+      startHour: number;
+      startMinute: number;
+      endHour: number;
+      endMinute: number;
+      timezone: string;
+      daysOfWeek: number[];
+    };
+    channels?: {
+      push: boolean;
+      email: boolean;
+      sms: boolean;
+    };
+  }
+}
+```
+
+### POST /api/v1/notifications/preferences
+Update notification preferences.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  type: 'MORNING_BRIEF' | 'URGENT_EMAIL' | 'WEEKLY_SUMMARY' | 'CUSTOM';
+  enabled: boolean;
+  timing?: {
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
+    timezone: string;
+    daysOfWeek: number[]; // 0=Sunday, 6=Saturday
+  };
+  channels?: {
+    push: boolean;
+    email: boolean;
+    sms: boolean;
+  };
+}
+```
+
+**Response:**
+```typescript
+{
+  preference: NotificationPreference
+}
+```
+
+### POST /api/v1/notifications/token
+Save FCM token for push notifications.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  token: string;
+  platform?: string; // default: 'web'
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  token: {
+    id: string;
+    userId: string;
+    token: string;
+    platform: string;
+    createdAt: string;
+  }
+}
+```
+
+### POST /api/v1/notifications/morning-brief/:userId
+Generate morning brief for user.
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  brief: {
+    id: string;
+    userId: string;
+    content: string;
+    urgentEmails: number;
+    actionItems: string[];
+    generatedAt: string;
+  }
+}
+```
+
+### POST /api/v1/notifications/test
+Send test notification.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  title: string;
+  body: string;
+  type?: string; // default: 'CUSTOM'
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  notification: {
+    id: string;
+    title: string;
+    body: string;
+    sentAt: string;
+  }
+}
+```
+
+### GET /api/v1/notifications/history/:userId
+Get notification history.
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+- `limit` (query): Number of notifications (default: 50)
+
+**Response:**
+```typescript
+{
+  history: Array<{
+    id: string;
+    userId: string;
+    title: string;
+    body: string;
+    type: string;
+    sentAt: string;
+    readAt?: string;
+  }>
+}
+```
+
+### POST /api/v1/notifications/read/:notificationId
+Mark notification as read.
+
+**Authentication:** None  
+**Parameters:**
+- `notificationId` (path): Notification ID
+
+**Response:**
+```typescript
+{
+  success: true;
+  notification: {
+    id: string;
+    readAt: string;
+  }
+}
+```
+
+## User Onboarding API
+
+### GET /api/v1/onboarding/progress/:userId
+Get user's onboarding progress.
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  progress: {
+    userId: string;
+    currentStep: 'WELCOME' | 'BUSINESS_PROFILE' | 'INTEGRATIONS' | 'NOTIFICATIONS' | 'COMPLETED';
+    completedSteps: string[];
+    skippedSteps: string[];
+    completionPercentage: number;
+    lastActivity: string;
+  }
+}
+```
+
+### POST /api/v1/onboarding/complete-step
+Mark an onboarding step as completed.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  step: 'WELCOME' | 'BUSINESS_PROFILE' | 'INTEGRATIONS' | 'NOTIFICATIONS';
+  data?: any; // Step-specific data
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  progress: OnboardingProgress;
+}
+```
+
+### POST /api/v1/onboarding/skip-step
+Skip an onboarding step.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  step: string;
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  progress: OnboardingProgress;
+}
+```
+
+### POST /api/v1/onboarding/business-profile
+Save business profile information.
+
+**Authentication:** None
+
+**Request:**
+```typescript
+{
+  userId: string;
+  businessName: string;
+  businessType: 'PLUMBING' | 'ELECTRICAL' | 'HVAC' | 'CARPENTRY' | 'PAINTING' | 'LANDSCAPING' | 'ROOFING' | 'GENERAL_CONTRACTOR' | 'OTHER';
+  employeeCount: number;
+  servicesOffered: string[];
+  primaryLocation: string;
+  yearsInBusiness: number;
+  averageJobValue?: number;
+  communicationPreferences?: {
+    preferredTone: 'formal' | 'casual' | 'friendly';
+    responseTime: 'immediate' | 'same_day' | 'next_day';
+    followUpFrequency: 'aggressive' | 'moderate' | 'minimal';
+  };
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  profile: BusinessProfile;
+}
+```
+
+### GET /api/v1/onboarding/business-profile/:userId
+Get business profile for user.
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  profile: BusinessProfile | null
+}
+```
+
+### GET /api/v1/onboarding/tips/:step
+Get tips for onboarding step.
+
+**Authentication:** None  
+**Parameters:**
+- `step` (path): Onboarding step name
+
+**Response:**
+```typescript
+{
+  tips: string[]
+}
+```
+
+### GET /api/v1/onboarding/security/:step
+Get security information for onboarding step.
+
+**Authentication:** None  
+**Parameters:**
+- `step` (path): Onboarding step name
+
+**Response:**
+```typescript
+{
+  info: {
+    title: string;
+    description: string;
+    securityMeasures: string[];
+  }
+}
+```
+
+### POST /api/v1/onboarding/reset/:userId
+Reset user's onboarding progress (testing only).
+
+**Authentication:** None  
+**Parameters:**
+- `userId` (path): User ID
+
+**Response:**
+```typescript
+{
+  success: true;
+  message: string;
+  resetSteps: string[];
+}
+```
+
+### GET /api/v1/onboarding/stats
+Get onboarding statistics.
+
+**Authentication:** None
+
+**Response:**
+```typescript
+{
+  stats: {
+    totalUsers: number;
+    completedUsers: number;
+    averageCompletionTime: number;
+    stepCompletionRates: Record<string, number>;
+  }
+}
+```
+
+## Administrative API
+
+### GET /api/v1/admin/files/stats
+Get file upload statistics.
+
+**Authentication:** Required + Admin Role  
+**Admin Check:** Currently allows any authenticated user (development mode)
+
+**Response:**
+```typescript
+{
+  success: true;
+  data: {
+    totalFiles: number;
+    totalSizeBytes: number;
+    oldestFileAge: number; // milliseconds
+    tempFiles: number;
+    formattedSize: string; // e.g., "15.2 MB"
+    formattedOldestAge: string; // e.g., "2d 5h"
+    maxFileSize: number;
+    allowedExtensions: string[];
+    formattedMaxFileSize: string;
+  }
+}
+```
+
+### POST /api/v1/admin/files/cleanup
+Clean up old files from upload directories.
+
+**Authentication:** Required + Admin Role
+
+**Request:**
+```typescript
+{
+  maxAgeHours?: number; // 1-168 hours, default: 24
+  cleanupType?: 'old' | 'temp' | 'all'; // default: 'old'
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  data: {
+    cleanedCount: number;
+    operation: string;
+    timestamp: string;
+  }
+}
+```
+
+### DELETE /api/v1/admin/files/emergency-cleanup
+Emergency cleanup of all files (removes all files regardless of age).
+
+**Authentication:** Required + Admin Role
+
+**Response:**
+```typescript
+{
+  success: true;
+  data: {
+    totalCleaned: number;
+    oldFilesCount: number;
+    tempFilesCount: number;
+    operation: 'emergency cleanup';
+    timestamp: string;
+  }
+}
+```
+
+### GET /api/v1/admin/system/health
+Get detailed system health status including file system.
+
+**Authentication:** Required + Admin Role
+
+**Response:**
+```typescript
+{
+  success: true;
+  data: {
+    timestamp: string;
+    fileSystem: {
+      status: 'healthy' | 'unhealthy';
+      stats: {
+        totalFiles: number;
+        totalSizeBytes: number;
+        oldestFileAge: number;
+        tempFiles: number;
+        error?: string;
+      };
+      formattedSize?: string;
+      formattedOldestAge?: string;
     }
   }
 }
 ```
 
-### POST /chat/sessions
-Create a new chat session.
+## System Health Check
 
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
+### GET /health
+Public health check endpoint for monitoring and load balancers.
 
-**Request Body:**
-```json
+**Authentication:** None
+
+**Response:**
+```typescript
 {
-  "title": "New Conversation",
-  "context": {
-    "businessType": "plumbing",
-    "currentTask": "email_management"
-  }
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "session": {
-      "id": "session-uuid",
-      "title": "New Conversation",
-      "createdAt": "2024-01-15T10:30:00Z",
-      "context": {
-        "businessType": "plumbing",
-        "currentTask": "email_management"
-      }
+  status: 'ok' | 'degraded';
+  timestamp: string;
+  services: {
+    database: {
+      status: 'connected' | 'error';
+      responseTime: number; // milliseconds
+      error?: string;
+    };
+    scheduler: {
+      running: boolean;
+      jobCount: number;
+      lastActivity?: string;
+    };
+    fileSystem: {
+      status: 'healthy' | 'degraded';
+      stats: {
+        totalFiles: number;
+        tempFiles: number;
+        totalSizeMB: number;
+        oldestFileAgeHours: number;
+      } | null;
+      error?: string;
     }
   }
 }
 ```
 
-### GET /chat/sessions/:sessionId/messages
-Get messages for a specific session.
+**Status Codes:**
+- `200`: All services healthy
+- `503`: One or more services degraded/down
 
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
+## File Upload Configuration
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "messages": [
-      {
-        "id": "message-uuid",
-        "sessionId": "session-uuid",
-        "role": "user",
-        "content": "Help me send an email to my client",
-        "timestamp": "2024-01-15T10:30:00Z",
-        "metadata": {}
-      },
-      {
-        "id": "message-uuid-2",
-        "sessionId": "session-uuid",
-        "role": "assistant",
-        "content": "I can help you send an email. Do you have Gmail connected?",
-        "timestamp": "2024-01-15T10:30:15Z",
-        "metadata": {
-          "suggestions": ["Connect Gmail", "Write email"]
-        }
-      }
-    ]
-  }
-}
-```
+**Maximum File Size:** 10MB  
+**Allowed Extensions:**
+- Documents: `.pdf`, `.doc`, `.docx`, `.txt`, `.rtf`, `.odt`
+- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`
+- Spreadsheets: `.xls`, `.xlsx`, `.csv`, `.ods`
+- Presentations: `.ppt`, `.pptx`, `.odp`
+- Archives: `.zip`, `.rar`, `.7z`
 
-### POST /chat/sessions/:sessionId/messages
-Send a message in a chat session.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Request Body:**
-```json
-{
-  "content": "Help me send an email to my client",
-  "metadata": {
-    "attachments": [],
-    "context": {}
-  }
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "message": {
-      "id": "message-uuid",
-      "sessionId": "session-uuid",
-      "role": "user",
-      "content": "Help me send an email to my client",
-      "timestamp": "2024-01-15T10:30:00Z"
-    }
-  }
-}
-```
-
-## Integration Endpoints
-
-### GET /integrations
-Get user's connected integrations.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "integrations": [
-      {
-        "id": "integration-uuid",
-        "provider": "gmail",
-        "status": "connected",
-        "connectedAt": "2024-01-15T10:30:00Z",
-        "lastSync": "2024-01-15T11:00:00Z",
-        "capabilities": ["send_email", "read_email", "manage_labels"],
-        "metadata": {
-          "email": "user@gmail.com",
-          "displayName": "John Doe"
-        }
-      }
-    ]
-  }
-}
-```
-
-### POST /integrations/:provider/connect
-Initiate OAuth connection for an integration.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Path Parameters:**
-- `provider`: Integration provider (gmail, calendar, hubspot)
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "authUrl": "https://accounts.google.com/oauth/authorize?...",
-    "state": "random-state-token"
-  }
-}
-```
-
-### POST /integrations/:provider/callback
-Handle OAuth callback and complete integration.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Request Body:**
-```json
-{
-  "code": "oauth-authorization-code",
-  "state": "random-state-token"
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "integration": {
-      "id": "integration-uuid",
-      "provider": "gmail",
-      "status": "connected",
-      "connectedAt": "2024-01-15T10:30:00Z",
-      "capabilities": ["send_email", "read_email", "manage_labels"]
-    }
-  }
-}
-```
-
-### DELETE /integrations/:integrationId
-Disconnect an integration.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Integration disconnected successfully"
-}
-```
-
-## User Management Endpoints
-
-### GET /users/profile
-Get current user's profile.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user-uuid",
-      "email": "user@example.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "businessName": "ABC Trade Co",
-      "businessType": "plumbing",
-      "preferences": {
-        "timezone": "Australia/Sydney",
-        "notifications": {
-          "email": true,
-          "push": false
-        }
-      },
-      "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-15T10:30:00Z"
-    }
-  }
-}
-```
-
-### PUT /users/profile
-Update user profile.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Request Body:**
-```json
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "businessName": "ABC Trade Co",
-  "businessType": "plumbing",
-  "preferences": {
-    "timezone": "Australia/Sydney",
-    "notifications": {
-      "email": true,
-      "push": false
-    }
-  }
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user-uuid",
-      "email": "user@example.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "businessName": "ABC Trade Co",
-      "businessType": "plumbing",
-      "preferences": {
-        "timezone": "Australia/Sydney",
-        "notifications": {
-          "email": true,
-          "push": false
-        }
-      },
-      "updatedAt": "2024-01-15T10:35:00Z"
-    }
-  }
-}
-```
-
-## Document Processing Endpoints
-
-### POST /documents/upload
-Upload and process a document.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-Content-Type: multipart/form-data
-```
-
-**Request Body (Form Data):**
-```
-file: [File object]
-metadata: {
-  "title": "Trade Regulations 2024",
-  "category": "regulations",
-  "tags": ["plumbing", "regulations", "2024"]
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "document": {
-      "id": "document-uuid",
-      "filename": "trade-regulations-2024.pdf",
-      "title": "Trade Regulations 2024",
-      "category": "regulations",
-      "tags": ["plumbing", "regulations", "2024"],
-      "size": 2048576,
-      "status": "processing",
-      "uploadedAt": "2024-01-15T10:30:00Z"
-    }
-  }
-}
-```
-
-### GET /documents
-Get user's documents.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Query Parameters:**
-- `category` (optional): Filter by category
-- `tags` (optional): Filter by tags (comma-separated)
-- `limit` (optional): Number of documents to return
-- `offset` (optional): Pagination offset
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "documents": [
-      {
-        "id": "document-uuid",
-        "filename": "trade-regulations-2024.pdf",
-        "title": "Trade Regulations 2024",
-        "category": "regulations",
-        "tags": ["plumbing", "regulations", "2024"],
-        "size": 2048576,
-        "status": "processed",
-        "uploadedAt": "2024-01-15T10:30:00Z",
-        "extractedData": {
-          "keyTerms": ["regulations", "compliance", "standards"],
-          "summary": "Updated trade regulations for 2024..."
-        }
-      }
-    ]
-  }
-}
-```
-
-### GET /documents/:documentId
-Get document details and content.
-
-**Headers:**
-```
-Authorization: Bearer jwt-token
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "document": {
-      "id": "document-uuid",
-      "filename": "trade-regulations-2024.pdf",
-      "title": "Trade Regulations 2024",
-      "category": "regulations",
-      "content": "Extracted text content...",
-      "extractedData": {
-        "keyTerms": ["regulations", "compliance", "standards"],
-        "summary": "Updated trade regulations for 2024...",
-        "entities": [
-          {
-            "type": "date",
-            "value": "2024-01-01",
-            "confidence": 0.95
-          }
-        ]
-      },
-      "status": "processed",
-      "uploadedAt": "2024-01-15T10:30:00Z",
-      "processedAt": "2024-01-15T10:31:00Z"
-    }
-  }
-}
-```
-
-## WebSocket Events
-
-### Connection
-```javascript
-// Client connects to WebSocket
-const socket = io('ws://localhost:3000', {
-  auth: {
-    token: 'jwt-token'
-  }
-});
-```
-
-### Chat Events
-```javascript
-// Send message
-socket.emit('chat:message', {
-  sessionId: 'session-uuid',
-  content: 'Hello, I need help with email',
-  metadata: {}
-});
-
-// Receive message
-socket.on('chat:message', (data) => {
-  // {
-  //   id: 'message-uuid',
-  //   sessionId: 'session-uuid',
-  //   role: 'assistant',
-  //   content: 'How can I help you with email?',
-  //   timestamp: '2024-01-15T10:30:00Z'
-  // }
-});
-
-// Typing indicator
-socket.emit('chat:typing', {
-  sessionId: 'session-uuid',
-  isTyping: true
-});
-
-socket.on('chat:typing', (data) => {
-  // { sessionId: 'session-uuid', isTyping: true, userId: 'user-uuid' }
-});
-```
-
-### System Events
-```javascript
-// Integration status updates
-socket.on('integration:status', (data) => {
-  // {
-  //   integrationId: 'integration-uuid',
-  //   status: 'connected',
-  //   provider: 'gmail'
-  // }
-});
-
-// System notifications
-socket.on('system:notification', (data) => {
-  // {
-  //   type: 'success',
-  //   message: 'Gmail integration completed',
-  //   timestamp: '2024-01-15T10:30:00Z'
-  // }
-});
-```
+**Upload Directories:**
+- Temporary: `backend/uploads/temp/`
+- Processed: `backend/uploads/processed/`
+- Permissions: `700` (owner read/write/execute only)
 
 ## Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| VALIDATION_ERROR | 400 | Request validation failed |
-| UNAUTHORIZED | 401 | Authentication required |
-| FORBIDDEN | 403 | Insufficient permissions |
-| NOT_FOUND | 404 | Resource not found |
-| RATE_LIMIT | 429 | Too many requests |
-| INTEGRATION_ERROR | 422 | External integration error |
-| SERVER_ERROR | 500 | Internal server error |
-| SERVICE_UNAVAILABLE | 503 | Service temporarily unavailable |
+| HTTP Status | Error Code | Description |
+|-------------|------------|-------------|
+| 400 | VALIDATION_ERROR | Request validation failed (Zod errors) |
+| 401 | UNAUTHORIZED | Missing or invalid JWT token |
+| 403 | FORBIDDEN | User lacks permission for resource |
+| 404 | NOT_FOUND | Resource not found |
+| 429 | RATE_LIMIT | Rate limit exceeded |
+| 500 | SERVER_ERROR | Internal server error |
+| 503 | SERVICE_UNAVAILABLE | Service temporarily unavailable |
 
-## Rate Limiting
+## Environment Configuration
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| /auth/login | 5 requests | 15 minutes |
-| /auth/register | 3 requests | 1 hour |
-| /chat/* | 100 requests | 1 minute |
-| /integrations/* | 20 requests | 1 minute |
-| /documents/upload | 10 requests | 1 hour |
-| Default | 1000 requests | 1 hour |
+### Required Variables
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 
-This API documentation provides a comprehensive guide for integrating with the AI-powered administrative assistant application.
+# Security  
+JWT_SECRET=your-secret-key-minimum-32-chars
+CORS_ORIGIN=http://localhost:3000
+
+# AI Services
+OPENAI_API_KEY=sk-your-openai-key
+OPENAI_MODEL=gpt-4-turbo-preview
+```
+
+### Optional Variables
+```bash
+# Gmail Integration
+GMAIL_CLIENT_ID=your-gmail-client-id
+GMAIL_CLIENT_SECRET=your-gmail-client-secret
+GMAIL_REDIRECT_URI=your-redirect-uri
+
+# Redis Caching
+REDIS_URL=redis://localhost:6379
+
+# Feature Flags
+ENABLE_MORNING_BRIEF=true
+ENABLE_EMAIL_ANALYSIS=true
+ENABLE_INDUSTRY_INTELLIGENCE=true
+
+# Timeouts (milliseconds)
+DATABASE_CONNECTION_TIMEOUT=10000
+DATABASE_QUERY_TIMEOUT=30000
+HTTP_REQUEST_TIMEOUT=30000
+OPENAI_TIMEOUT=60000
+SERVER_TIMEOUT=120000
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Logging
+LOG_LEVEL=info  # error, warn, info, debug, verbose
+```
+
+## Development and Testing
+
+### Running Tests
+```bash
+# Backend tests
+cd backend && npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Test specific file
+npm test -- emails.test.ts
+```
+
+### API Testing
+```bash
+# Health check
+curl http://localhost:3001/health
+
+# Test email analysis (requires auth token)
+curl -X POST http://localhost:3001/api/v1/emails/analyze \
+  -H "Authorization: Bearer your-jwt-token" \
+  -H "Content-Type: application/json" \
+  -d '{"emailId":"test","subject":"Test","from":"test@example.com","snippet":"Test email","receivedAt":"2024-01-01T00:00:00Z"}'
+```
+
+### Authentication Token Generation
+Tokens are generated through the Kinde authentication service integration. For development/testing, you can:
+
+1. Use the frontend login flow to obtain tokens
+2. Generate tokens manually using the JWT_SECRET (development only)
+3. Use test endpoints if available in development mode
+
+## Security Considerations
+
+1. **JWT Tokens:** Use strong secrets (32+ characters) in production
+2. **CORS:** Configure specific origins, not wildcards in production
+3. **Rate Limiting:** Configured per endpoint type
+4. **File Uploads:** Size and extension restrictions enforced
+5. **User Ownership:** Validated for user-specific endpoints
+6. **Error Handling:** Sanitized error messages in production
+7. **Timeout Configuration:** All external services have timeout limits
+
+This API documentation reflects the current backend implementation and provides comprehensive guidance for integration and development.
