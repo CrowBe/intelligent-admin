@@ -1,215 +1,155 @@
-# Project Structure Guidelines
+# Project Structure Documentation
 
-## Repository Structure
+## Monorepo Architecture
 
-### Simplified Layout
+This project uses a **npm workspaces** monorepo structure with three main packages:
+
 ```
 intelligent-admin/
-├── README.md
-├── CLAUDE.md                    # Claude Code instructions
-├── package.json                 # Root package.json with workspaces
+├── package.json                 # Root workspace configuration
+├── CLAUDE.md                    # Claude Code instructions & standards
+├── eslint.config.js             # Root-level TypeScript linting
+├── tsconfig.json                # Root TypeScript configuration
+├── vitest.config.ts             # Root Vitest test configuration
 ├── docker-compose.yml           # Development environment
 ├── .gitignore
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       └── deploy.yml
-├── docs/                        # Documentation
-│   ├── requirements.md
-│   ├── technical-specifications.md
-│   ├── system-architecture.md
+├── docs/                        # Project documentation
+│   ├── project-structure.md     # This file
 │   ├── development-roadmap.md
-│   ├── api-documentation.md
-│   ├── business-case.md
-│   └── deployment.md
-├── frontend/                    # React single-page application
-│   ├── package.json
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ChatInterface.tsx
-│   │   │   ├── MessageBubble.tsx
-│   │   │   ├── InputBox.tsx
-│   │   │   ├── IntegrationStatus.tsx
-│   │   │   └── SettingsModal.tsx
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── App.tsx
-│   └── public/
-├── backend/                     # Express.js API server
-│   ├── package.json
-│   ├── src/
-│   │   ├── routes/
-│   │   │   ├── auth.ts
-│   │   │   ├── chat.ts
-│   │   │   ├── integrations.ts
-│   │   │   └── documents.ts
-│   │   ├── services/
-│   │   │   ├── mcpService.ts
-│   │   │   ├── aiService.ts
-│   │   │   └── authService.ts
-│   │   ├── agents/              # MCP Agents
-│   │   │   ├── gmailAgent.ts
-│   │   │   ├── calendarAgent.ts
-│   │   │   └── documentAgent.ts
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   └── app.ts
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── migrations/
-│   └── uploads/                 # File storage
-├── shared/                      # Shared types and utilities
-│   ├── types/
-│   └── utils/
-└── scripts/                     # Build and deployment scripts
-    ├── setup-dev.sh
-    ├── build.sh
-    └── deploy.sh
+│   ├── system-architecture.md
+│   └── api-documentation.md
+├── scripts/                     # Database & deployment scripts
+│   └── init-db.sql              # Database initialization
+├── frontend/                    # React application (workspace)
+├── backend/                     # Express.js API (workspace)
+├── shared/                      # Shared utilities (workspace)
+└── node_modules/                # Root workspace dependencies
 ```
 
-## Service Structure Guidelines
+### Workspace Configuration
 
-### Frontend Service Structure
+The root `package.json` defines workspaces:
+```json
+{
+  "workspaces": ["frontend", "backend", "shared"],
+  "scripts": {
+    "dev": "concurrently --names backend,frontend npm run dev:backend npm run dev:frontend",
+    "test": "vitest run",
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared"
+  }
+}
 ```
-packages/frontend/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── tailwind.config.js
+
+**Benefits:**
+- Shared dependencies at root level
+- Coordinated testing across packages  
+- Consistent linting and TypeScript configuration
+- Simplified cross-package imports
+
+## Frontend Package Structure
+
+### Co-located Component Architecture (shadcn-ui Compatible)
+
+```
+frontend/
+├── package.json                # Frontend dependencies
+├── eslint.config.js            # React + A11y linting rules
+├── tsconfig.json               # TypeScript config with path aliases
+├── vite.config.ts              # Vite bundler configuration
+├── vitest.config.ts            # Frontend testing configuration
+├── tailwind.config.js          # Tailwind CSS configuration
+├── .storybook/                 # Storybook visual testing setup
 ├── public/
-│   ├── index.html
-│   ├── favicon.ico
-│   └── manifest.json
 ├── src/
 │   ├── main.tsx                # Application entry point
 │   ├── App.tsx                 # Root component
-│   ├── components/             # Reusable UI components
-│   │   ├── common/
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── Modal.tsx
-│   │   │   └── Loading.tsx
-│   │   ├── chat/
-│   │   │   ├── ChatInterface.tsx
-│   │   │   ├── MessageList.tsx
-│   │   │   ├── MessageInput.tsx
-│   │   │   └── TypingIndicator.tsx
-│   │   ├── auth/
-│   │   │   ├── LoginForm.tsx
-│   │   │   ├── RegisterForm.tsx
-│   │   │   └── OAuth.tsx
-│   │   └── integrations/
-│   │       ├── IntegrationList.tsx
-│   │       ├── IntegrationCard.tsx
-│   │       └── ConnectionStatus.tsx
-│   ├── pages/
-│   │   ├── Home.tsx
-│   │   ├── Chat.tsx
-│   │   ├── Settings.tsx
-│   │   └── Integrations.tsx
-│   ├── hooks/                  # Custom React hooks
-│   │   ├── useAuth.ts
-│   │   ├── useChat.ts
-│   │   ├── useWebSocket.ts
-│   │   └── useIntegrations.ts
-│   ├── services/               # API communication
-│   │   ├── api.ts
-│   │   ├── auth.ts
-│   │   ├── chat.ts
-│   │   └── websocket.ts
-│   ├── store/                  # State management
-│   │   ├── index.ts
-│   │   ├── slices/
-│   │   │   ├── authSlice.ts
-│   │   │   ├── chatSlice.ts
-│   │   │   └── integrationsSlice.ts
-│   │   └── middleware/
-│   ├── types/                  # TypeScript definitions
-│   │   ├── api.ts
-│   │   ├── auth.ts
-│   │   └── chat.ts
-│   ├── utils/
-│   │   ├── constants.ts
-│   │   ├── helpers.ts
-│   │   └── validation.ts
-│   └── styles/
-│       ├── globals.css
-│       └── components.css
-├── tests/
-│   ├── __mocks__/
 │   ├── components/
-│   ├── hooks/
-│   └── utils/
-└── dist/                       # Build output
+│   │   ├── ui/                 # shadcn-ui compatible components
+│   │   │   ├── index.ts        # Central re-exports
+│   │   │   └── button/         # Co-located component structure
+│   │   │       ├── index.ts    # Re-exports: export { Button } from './Button'
+│   │   │       ├── Button.tsx  # Component implementation
+│   │   │       ├── Button.stories.tsx  # Storybook visual tests
+│   │   │       └── Button.test.tsx     # Vitest unit tests
+│   │   ├── chat/               # Feature-specific components
+│   │   │   ├── ChatInterface.tsx
+│   │   │   ├── ChatInterface.test.tsx
+│   │   │   └── ChatMessage.stories.tsx
+│   │   └── documents/
+│   │       ├── DocumentUpload.tsx
+│   │       ├── DocumentUpload.test.tsx
+│   │       └── DocumentUpload.stories.tsx
+│   ├── hooks/                  # Custom React hooks
+│   ├── services/               # API communication layer
+│   │   ├── api.ts
+│   │   ├── documentApi.ts
+│   │   └── documentApi.test.ts
+│   ├── lib/                    # Utility functions
+│   │   └── utils.ts            # cn() helper and other utilities
+│   └── __tests__/              # Additional test files
+│       └── Dashboard.test.tsx
+├── dist/                       # Vite build output
+└── node_modules/
 ```
 
-### Backend Service Structure
+**Co-location Benefits:**
+- ✅ **shadcn-ui compatibility**: Import paths unchanged (`@/components/ui/button`)
+- ✅ **Logical grouping**: Related files stay together during refactoring
+- ✅ **Better DX**: Less file switching, easier code reviews
+- ✅ **Clear boundaries**: Each component owns its tests and stories
+
+## Backend Package Structure
+
+### Service-Oriented Architecture
+
 ```
-packages/backend/
-├── package.json
-├── tsconfig.json
-├── jest.config.js
-├── .env.example
+backend/
+├── package.json                # Backend dependencies + Prisma
+├── eslint.config.js            # Node.js + security linting rules
+├── tsconfig.json               # TypeScript with strict mode
+├── vitest.config.ts            # Backend testing configuration  
+├── .env                        # Environment variables (gitignored)
+├── prisma/                     # Database schema & migrations
+│   ├── schema.prisma           # Prisma schema definition
+│   └── migrations/             # Database migration files
+├── uploads/                    # File upload storage (development)
 ├── src/
-│   ├── app.ts                  # Express app setup
-│   ├── server.ts               # Server entry point
+│   ├── index.ts                # Server entry point
 │   ├── config/
-│   │   ├── database.ts
-│   │   ├── redis.ts
-│   │   ├── oauth.ts
-│   │   └── environment.ts
-│   ├── controllers/            # Route handlers
-│   │   ├── authController.ts
-│   │   ├── chatController.ts
-│   │   ├── userController.ts
-│   │   ├── integrationController.ts
-│   │   └── documentController.ts
-│   ├── middleware/
-│   │   ├── auth.ts
-│   │   ├── validation.ts
-│   │   ├── errorHandler.ts
-│   │   ├── rateLimiter.ts
-│   │   └── logging.ts
-│   ├── services/               # Business logic
-│   │   ├── authService.ts
-│   │   ├── chatService.ts
-│   │   ├── userService.ts
-│   │   ├── integrationService.ts
-│   │   └── documentService.ts
-│   ├── models/                 # Database models
-│   │   ├── User.ts
-│   │   ├── ChatSession.ts
-│   │   ├── Message.ts
-│   │   ├── Integration.ts
-│   │   └── Document.ts
-│   ├── routes/                 # Route definitions
-│   │   ├── index.ts
-│   │   ├── auth.ts
-│   │   ├── chat.ts
-│   │   ├── users.ts
-│   │   ├── integrations.ts
-│   │   └── documents.ts
+│   │   └── env.ts              # Environment configuration
+│   ├── routes/                 # API route definitions
+│   │   ├── admin.ts            # Admin management routes
+│   │   └── emails.ts           # Email processing routes
+│   ├── services/               # Core business logic (main focus)
+│   │   ├── emailUrgencyDetection.ts    # AI-powered email analysis
+│   │   ├── fileUpload.ts               # File handling service
+│   │   ├── industryService.ts          # Australian trade knowledge
+│   │   ├── notificationService.ts      # Push notification handling
+│   │   ├── onboardingService.ts        # User onboarding flow
+│   │   ├── prisma.ts                   # Database connection
+│   │   ├── scheduler.ts                # Task scheduling service
+│   │   └── initialization.ts          # Service initialization
+│   ├── middleware/             # Express middleware
+│   │   └── auth.ts             # Authentication middleware
+│   │   └── auth.test.ts        # Co-located middleware tests
 │   ├── utils/
-│   │   ├── logger.ts
-│   │   ├── crypto.ts
-│   │   ├── validation.ts
-│   │   └── helpers.ts
-│   ├── types/
-│   │   ├── express.d.ts
-│   │   ├── api.ts
-│   │   └── database.ts
-│   └── websocket/
-│       ├── socketHandlers.ts
-│       ├── chatEvents.ts
-│       └── middleware.ts
-├── tests/
-│   ├── integration/
-│   ├── unit/
-│   └── fixtures/
-├── migrations/                 # Database migrations
-└── dist/                      # Build output
+│   │   └── httpClient.ts       # HTTP client utilities
+│   ├── repositories/           # Data access layer
+│   │   └── __tests__/          # Repository integration tests
+│   └── __tests__/              # Integration & API tests
+│       ├── admin.routes.test.ts
+│       ├── fileUpload.test.ts
+│       ├── server.test.ts
+│       └── config-security.test.ts
+├── dist/                       # TypeScript build output
+└── node_modules/
 ```
+
+**Service-First Design:**
+- 🎯 **Core Logic in Services**: Business intelligence, email analysis, industry knowledge
+- 🔐 **Security Focus**: Comprehensive testing for auth and file uploads
+- 🧪 **Testing Strategy**: Mix of co-located (middleware) and grouped (__tests__) tests
+- 💾 **Prisma Integration**: Database schema and migrations managed separately
 
 ## Naming Conventions
 
@@ -267,30 +207,79 @@ LOG_LEVEL=info
 SENTRY_DSN=your-sentry-dsn
 ```
 
-### Package.json Scripts
+## Shared Package Structure
+
+### Common Types & Utilities
+
+```
+shared/
+├── package.json                # Shared dependencies
+├── eslint.config.js            # TypeScript library linting
+├── tsconfig.json               # Shared TypeScript configuration
+├── vitest.config.ts            # Shared testing configuration
+├── src/
+│   ├── index.ts                # Main exports
+│   ├── types/
+│   │   └── index.ts            # Common TypeScript interfaces
+│   └── utils/
+│       └── index.ts            # Shared utility functions
+└── dist/                       # Built package for consumption
+```
+
+**Purpose:**
+- 🤝 **Type Safety**: Shared interfaces between frontend and backend
+- 🛠️ **Common Utils**: Validation, formatting, constants
+- 📦 **Package Import**: Other workspaces import via `"shared"`
+
+## Testing Organization
+
+### Co-located vs Grouped Tests
+
+**Co-located (Recommended for Components):**
+```
+components/ui/button/
+├── Button.tsx
+├── Button.test.tsx             # Unit tests next to implementation
+└── Button.stories.tsx          # Visual tests for Storybook
+```
+
+**Grouped (For Integration/API Tests):**
+```
+backend/src/
+├── __tests__/                  # Integration tests
+│   ├── admin.routes.test.ts    # API endpoint testing
+│   └── server.test.ts          # Server configuration testing
+└── services/
+    └── services.integration.test.ts  # Service integration tests
+```
+
+**Benefits:**
+- **Co-located**: Easy maintenance, clear ownership
+- **Grouped**: Cross-cutting concerns, integration scenarios
+- **Storybook Integration**: Visual regression testing for UI components
+
+## Workspace Scripts (Root Level)
+
 ```json
 {
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "nodemon src/server.ts",
-    "dev:frontend": "vite",
-    "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "tsc && tsc-alias",
-    "build:frontend": "vite build",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "jest",
-    "test:frontend": "vitest",
-    "test:e2e": "playwright test",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "type-check": "tsc --noEmit",
-    "docker:build": "docker build -t ai-assistant .",
-    "docker:dev": "docker-compose up -d",
-    "migrate": "knex migrate:latest",
-    "seed": "knex seed:run"
+    "dev": "concurrently --names backend,frontend npm run dev:backend npm run dev:frontend",
+    "test": "vitest run",                    // Root vitest runs all workspace tests
+    "test:backend": "vitest run --project backend",
+    "test:frontend": "vitest run --project frontend",
+    "test:coverage": "vitest run --coverage",
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:shared",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend",
+    "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:migrate"
   }
 }
 ```
+
+**Workspace Benefits:**
+- 🏃 **Parallel Development**: Frontend and backend run concurrently
+- 🧪 **Unified Testing**: Single command runs all workspace tests
+- ✅ **Consistent Linting**: Same rules across all packages
+- 🔧 **Easy Setup**: One-command project initialization
 
 ## Development Workflow
 
@@ -322,26 +311,54 @@ refactor: optimize database queries
 chore: update dependencies
 ```
 
-## Code Quality Standards
+## Development Navigation Guide
 
-### TypeScript Configuration
-- Strict mode enabled
-- No implicit any
-- Consistent import/export patterns
-- Path mapping for clean imports
+### Finding Your Way Around
 
-### Linting Rules
-- ESLint with TypeScript support
-- Prettier for code formatting
-- Import order enforcement
-- Unused variable detection
-- Consistent naming conventions
+**🎯 Starting Development:**
+```bash
+npm run setup                   # Initial project setup
+npm run dev                     # Start both frontend & backend
+npm run test                    # Run all tests
+npm run lint                    # Check all code quality
+```
 
-### Testing Standards
-- Unit tests for all services
-- Integration tests for API endpoints
-- Component tests for React components
-- E2E tests for critical user flows
-- Minimum 80% code coverage
+**📁 Where to Find Things:**
 
-This structure provides a solid foundation for building, maintaining, and scaling the AI-powered administrative assistant application.
+| What you're looking for | Location |
+|------------------------|----------|
+| **UI Components** | `frontend/src/components/ui/{component}/` |
+| **Business Logic** | `backend/src/services/` |
+| **API Routes** | `backend/src/routes/` |
+| **Shared Types** | `shared/src/types/` |
+| **Database Schema** | `backend/prisma/schema.prisma` |
+| **Component Tests** | Co-located: `{Component}.test.tsx` |
+| **API Tests** | `backend/src/__tests__/` |
+| **Visual Tests** | Co-located: `{Component}.stories.tsx` |
+| **Config Files** | Each package root + project root |
+
+**🧪 Testing Strategy:**
+- **Unit Tests**: Co-located with components and services
+- **Integration Tests**: Grouped in `__tests__/` folders  
+- **Visual Tests**: Storybook stories for UI components
+- **Coverage**: Run `npm run test:coverage` for reports
+
+**📦 Import Patterns:**
+```typescript
+// ✅ Cross-workspace imports
+import { ApiResponse } from 'shared';
+
+// ✅ Frontend path aliases
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+// ✅ Backend relative imports
+import { emailService } from '../services/emailService';
+```
+
+**🔧 Configuration Hierarchy:**
+1. **Root**: Workspace coordination, shared tooling
+2. **Package Level**: Package-specific build/test/lint configs
+3. **Component Level**: Individual component organization
+
+This structure supports rapid development while maintaining code quality and type safety across the entire application.

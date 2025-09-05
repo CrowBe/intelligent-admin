@@ -4,12 +4,12 @@
 This is an AI-driven administrative assistant application for small trade businesses in Australia. The application features an AI chat interface accessible from mobile and desktop devices, with MCP (Model Context Protocol) integrations, secure authentication, and document processing capabilities.
 
 ## Quick Reference
-- **Documentation**: See `/docs/` folder for detailed specifications
-- **Architecture**: Microservices with React frontend, Node.js backend, PostgreSQL database
-- **Development**: Phase-based approach starting with MVP (chat + Gmail integration)
-- **Testing**: Run `npm run test` for backend, `npm run test:frontend` for frontend
+- **Documentation**: See `/docs/` folder for comprehensive, up-to-date specifications (recently updated Sept 2024)
+- **Architecture**: Monorepo with React frontend, Node.js backend, PostgreSQL database
+- **Development**: Phase 2 (Email Intelligence & Industry Knowledge) in progress
+- **Testing**: Vitest + Storybook with 80% coverage requirement - Run `npm run test` for backend, `npm run test:frontend` for frontend
 - **Build**: Use `npm run build` to build all services
-- **Deployment**: Docker-based with Kubernetes for production
+- **Deployment**: Docker Compose for development, Kubernetes for production
 
 ## Core Application Requirements
 
@@ -61,17 +61,21 @@ Develop an AI-driven application that acts as a centralized administrative assis
 
 #### Architecture and Components
 
-The application will use a modular architecture for scalability and ease of development:
+The application uses a **monorepo architecture** implemented with npm workspaces for scalability and development efficiency:
 
-- **Frontend**:
+- **Frontend Package** (`frontend/`):
 
-  - Web-based interface using React, Angular, or Vue.js.
-  - Features the AI chat interface and responsive design for mobile and desktop.
+  - React 18+ with TypeScript and Tailwind CSS
+  - Co-located component structure compatible with shadcn-ui
+  - Storybook for visual testing and documentation
+  - Mobile-first responsive design for trade professionals
 
-- **Backend**:
+- **Backend Package** (`backend/`):
 
-  - Server-side logic built with Node.js (Express.js), Django, or Flask.
-  - Manages API integrations, authentication, and data processing.
+  - Node.js with Express.js and TypeScript
+  - Prisma ORM with PostgreSQL database
+  - Comprehensive API routes for email intelligence and industry knowledge
+  - Admin routes, file upload service, and scheduler integration
 
 - **AI Engine**:
 
@@ -79,10 +83,17 @@ The application will use a modular architecture for scalability and ease of deve
   - Includes a recommendation system for application suggestions.
   - Processes documents for context extraction.
 
+- **Shared Package** (`shared/`):
+
+  - Common TypeScript types and utilities
+  - Cross-workspace type safety and shared business logic
+
 - **Database**:
 
-  - Stores structured data (e.g., PostgreSQL) or flexible unstructured data (e.g., MongoDB).
-  - Holds user data, tokens, and persistent context.
+  - PostgreSQL with Prisma ORM for structured data
+  - Email analysis models for Phase 2A features
+  - Industry knowledge models for Australian trade standards
+  - User onboarding and notification management
 
 - **Service Layer**:
 
@@ -164,10 +175,10 @@ The application will use a modular architecture for scalability and ease of deve
 
 #### Scalability and Performance
 
-- **Microservices**: Separate backend into services (e.g., AI, authentication) for independent scaling.
-- **Caching**: Use Redis for frequently accessed data to reduce database load.
-- **Load Balancing**: Distribute traffic across servers as usage increases.
-- **Async Processing**: Handle document processing with message queues (e.g., RabbitMQ).
+- **Monorepo Services**: Organized service modules within backend for maintainability and clear separation of concerns
+- **Caching**: Redis for session management and frequently accessed data
+- **Load Balancing**: Kubernetes deployment with horizontal pod autoscaling
+- **Async Processing**: Background job processing for document analysis and industry knowledge updates
 
 ---
 
@@ -229,7 +240,7 @@ We are in **Phase 2: Email Intelligence & Industry Knowledge** (see `/docs/devel
 - **TypeScript**: Strict mode enabled throughout
 - **Testing**: Minimum 80% code coverage with co-located test files
 - **Linting**: ESLint + Prettier configuration with strict rules (see Linting Configuration below)
-- **Architecture**: Follow microservices patterns from `/docs/system-architecture.md`
+- **Architecture**: Follow monorepo patterns from `/docs/system-architecture.md` (updated Sept 2024)
 - **Component Organization**: Co-located structure (see Component Standards below)
 
 #### Linting Configuration
@@ -341,11 +352,13 @@ Current monorepo structure (focus areas):
 5. Database schema in `backend/prisma/` - already implemented
 
 ### Testing Strategy
-- **Unit Tests**: All service functions
-- **Integration Tests**: API endpoints
-- **Component Tests**: React components
-- **E2E Tests**: Critical user flows
-- Run tests before any commits
+- **Comprehensive Framework**: Vitest + Testing Library + Storybook across all packages
+- **Co-located Tests**: Component tests alongside implementation files
+- **Coverage Requirements**: 80% minimum across unit, integration, and component tests
+- **Visual Testing**: Storybook stories serve as living documentation
+- **Security Testing**: Admin routes, file uploads, and authentication flows
+- **Performance Testing**: Race condition handling and timeout scenarios
+- See `/docs/testing-strategy.md` for complete details
 
 ### Deployment Notes
 - **Development**: Docker Compose setup
@@ -361,13 +374,16 @@ Current monorepo structure (focus areas):
 - **File Storage**: Local filesystem (development), cloud storage (production)
 
 ### Current Implementation Status
-- ✅ **Foundation**: React + Express.js + PostgreSQL architecture complete
-- ✅ **Core Chat**: AI-powered conversation interface implemented
-- ✅ **Authentication**: Kinde + Google OAuth flows working
-- ✅ **Database**: Prisma schema with email analysis and industry knowledge models
-- 🔄 **Email Intelligence**: Gmail integration and urgency detection in progress
-- 🔄 **Industry Knowledge**: Australian trade regulations integration in progress
-- ⏳ **Push Notifications**: Firebase integration pending
-- ⏳ **Mobile UX**: Touch-first interface optimizations pending
+- ✅ **Phase 1 Complete**: React + Express.js + PostgreSQL monorepo architecture
+- ✅ **Core Infrastructure**: AI chat interface, authentication, comprehensive testing framework
+- ✅ **Database Schema**: Complete Prisma models for email analysis, industry knowledge, notifications
+- ✅ **API Layer**: Email intelligence, industry knowledge, admin, and file upload endpoints
+- ✅ **Testing Infrastructure**: Vitest + Storybook setup with co-located testing strategy
+- ✅ **Documentation**: Comprehensive, up-to-date docs in `/docs/` folder (Sept 2024)
+- 🔄 **Phase 2A**: Email urgency detection and notification system in progress
+- 🔄 **Phase 2B**: Australian trade standards integration and mobile UX optimization
+- ⏳ **Phase 3**: Calendar integration and multi-service coordination planning
+
+**Key Achievements**: Phase 1 delivered ahead of schedule with robust architecture, comprehensive testing, and detailed documentation foundation.
 
 This reflects the current state of an actively developed trade business administrative assistant with core functionality implemented and Phase 2 features in progress.

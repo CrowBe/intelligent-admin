@@ -3,555 +3,673 @@
 ## Database Schema Design
 
 ### Overview
-The application uses PostgreSQL as the primary database with the following design principles:
-- Normalized data structure to reduce redundancy
-- Foreign key constraints for data integrity
-- Indexed columns for performance
-- JSON columns for flexible metadata storage
-- Soft deletes for audit trails
+The application uses PostgreSQL as the primary database with Prisma ORM. The current schema is designed to support:
+- **Phase 2A**: Email Intelligence & Notification Management
+- **Phase 2B**: Industry Intelligence & Business Context
+- **Core Features**: User management, onboarding, task tracking
 
-## Core Tables
+### Design Principles
+- CUID-based primary keys for better distributed performance
+- JSON columns for flexible configuration storage
+- Strategic indexing for query performance
+- Foreign key relationships for data integrity
+- Enum types for content categorization
 
-### users
-User account information and business details.
+## Core Data Models
 
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    business_name VARCHAR(255),
-    business_type VARCHAR(100),
-    phone VARCHAR(20),
-    timezone VARCHAR(50) DEFAULT 'Australia/Sydney',
-    preferences JSONB DEFAULT '{}',
-    email_verified BOOLEAN DEFAULT FALSE,
-    email_verified_at TIMESTAMP,
-    last_login_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP
-);
+### User Management
 
--- Indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_business_type ON users(business_type);
-CREATE INDEX idx_users_created_at ON users(created_at);
+#### User
+Basic user account information (placeholder model).
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 ```
+
+**Purpose**: Core user identity for authentication and authorization.
+**Relations**: Referenced by all user-scoped models.
+**Note**: This is a minimal placeholder model. Full user management is handled by Kinde authentication.
+
+#### UserPreference
+User business profile and application preferences.
+
+```prisma
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessProfile Json?    // Business name, type, size, etc.
+  preferences     Json     // General preferences
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+```
+
+**Purpose**: Store user-specific business context and application settings.
+**Key Fields**:
+- `businessProfile`: Industry type, company size, trade specialization
+- `preferences`: UI settings, AI personality, notification preferences
 
 **TypeScript Interface:**
 ```typescript
-interface User {
+interface UserPreference {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  businessName?: string;
-  businessType?: string;
-  phone?: string;
-  timezone: string;
-  preferences: UserPreferences;
-  emailVerified: boolean;
-  emailVerifiedAt?: Date;
-  lastLoginAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-interface UserPreferences {
-  notifications: {
-    email: boolean;
-    push: boolean;
-    sms: boolean;
+  userId: string;
+  businessProfile?: {
+    businessName: string;
+    businessType: 'plumbing' | 'electrical' | 'carpentry' | 'other';
+    businessSize: 'sole_trader' | 'small' | 'medium';
+    location: string;
   };
-  ai: {
-    personality: 'professional' | 'friendly' | 'concise';
+  preferences: {
+    aiPersonality: 'professional' | 'friendly' | 'concise';
     proactiveMode: boolean;
-    autoSuggestions: boolean;
+    timezone: string;
   };
-  integrations: {
-    autoConnect: boolean;
-    defaultCalendar?: string;
-    defaultEmail?: string;
-  };
-}
-```
-
-### chat_sessions
-Individual conversation sessions between user and AI.
-
-```sql
-CREATE TABLE chat_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255),
-    context_data JSONB DEFAULT '{}',
-    status VARCHAR(20) DEFAULT 'active',
-    message_count INTEGER DEFAULT 0,
-    last_activity_at TIMESTAMP DEFAULT NOW(),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP
-);
-
--- Indexes
-CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
-CREATE INDEX idx_chat_sessions_last_activity ON chat_sessions(last_activity_at);
-CREATE INDEX idx_chat_sessions_status ON chat_sessions(status);
-```
-
-**TypeScript Interface:**
-```typescript
-interface ChatSession {
-  id: string;
-  userId: string;
-  title?: string;
-  contextData: ChatContext;
-  status: 'active' | 'archived' | 'deleted';
-  messageCount: number;
-  lastActivityAt: Date;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
-}
-
-interface ChatContext {
-  businessContext?: {
-    currentProject?: string;
-    clientInfo?: any;
-    taskType?: string;
-  };
-  aiContext?: {
-    personality: string;
-    memory: any[];
-    preferences: any;
-  };
-  integrationContext?: {
-    activeConnections: string[];
-    recentTasks: any[];
-  };
 }
 ```
 
-### messages
-Individual messages within chat sessions.
+### Task Management
 
-```sql
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL,
-    content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    token_count INTEGER,
-    processing_time_ms INTEGER,
-    timestamp TIMESTAMP DEFAULT NOW(),
-    edited_at TIMESTAMP,
-    deleted_at TIMESTAMP
-);
+#### Task
+User tasks with due dates and reminder tracking.
 
--- Indexes
-CREATE INDEX idx_messages_session_id ON messages(session_id);
-CREATE INDEX idx_messages_timestamp ON messages(timestamp);
-CREATE INDEX idx_messages_role ON messages(role);
-```
+```prisma
+model Task {
+  id           String    @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  status       String    @default("pending") // pending, completed, cancelled
+  dueDate      DateTime
+  reminderSent Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-**TypeScript Interface:**
-```typescript
-interface Message {
-  id: string;
-  sessionId: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  metadata: MessageMetadata;
-  tokenCount?: number;
-  processingTimeMs?: number;
-  timestamp: Date;
-  editedAt?: Date;
-  deletedAt?: Date;
-}
-
-interface MessageMetadata {
-  attachments?: {
-    type: string;
-    url: string;
-    name: string;
-    size: number;
-  }[];
-  suggestions?: string[];
-  actions?: {
-    type: string;
-    payload: any;
-    completed: boolean;
-  }[];
-  aiMetadata?: {
-    model: string;
-    temperature: number;
-    confidence: number;
-    intent: string;
-    entities: any[];
-  };
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
 }
 ```
 
-### integrations
-External application connections and OAuth tokens.
-
-```sql
-CREATE TABLE integrations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    provider VARCHAR(50) NOT NULL,
-    provider_user_id VARCHAR(255),
-    encrypted_tokens TEXT NOT NULL,
-    refresh_token_encrypted TEXT,
-    token_expires_at TIMESTAMP,
-    scopes TEXT[],
-    capabilities TEXT[],
-    status VARCHAR(20) DEFAULT 'connected',
-    metadata JSONB DEFAULT '{}',
-    last_sync_at TIMESTAMP,
-    connected_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP,
-    
-    UNIQUE(user_id, provider)
-);
-
--- Indexes
-CREATE INDEX idx_integrations_user_id ON integrations(user_id);
-CREATE INDEX idx_integrations_provider ON integrations(provider);
-CREATE INDEX idx_integrations_status ON integrations(status);
-CREATE INDEX idx_integrations_token_expires_at ON integrations(token_expires_at);
-```
-
-**TypeScript Interface:**
-```typescript
-interface Integration {
-  id: string;
-  userId: string;
-  provider: IntegrationProvider;
-  providerUserId?: string;
-  encryptedTokens: string;
-  refreshTokenEncrypted?: string;
-  tokenExpiresAt?: Date;
-  scopes: string[];
-  capabilities: string[];
-  status: 'connected' | 'expired' | 'error' | 'disconnected';
-  metadata: IntegrationMetadata;
-  lastSyncAt?: Date;
-  connectedAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-type IntegrationProvider = 'gmail' | 'google_calendar' | 'hubspot' | 'outlook' | 'slack';
-
-interface IntegrationMetadata {
-  email?: string;
-  displayName?: string;
-  avatar?: string;
-  organizationId?: string;
-  lastError?: {
-    code: string;
-    message: string;
-    timestamp: Date;
-  };
-  syncStats?: {
-    totalSynced: number;
-    lastSyncDuration: number;
-    errors: number;
-  };
-}
-```
-
-### documents
-Uploaded and processed documents with extracted content.
-
-```sql
-CREATE TABLE documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    filename VARCHAR(255) NOT NULL,
-    original_filename VARCHAR(255) NOT NULL,
-    title VARCHAR(255),
-    category VARCHAR(100),
-    tags TEXT[],
-    mime_type VARCHAR(100) NOT NULL,
-    file_size INTEGER NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
-    content_text TEXT,
-    extracted_data JSONB DEFAULT '{}',
-    processing_status VARCHAR(20) DEFAULT 'pending',
-    processing_error TEXT,
-    uploaded_at TIMESTAMP DEFAULT NOW(),
-    processed_at TIMESTAMP,
-    deleted_at TIMESTAMP
-);
-
--- Indexes
-CREATE INDEX idx_documents_user_id ON documents(user_id);
-CREATE INDEX idx_documents_category ON documents(category);
-CREATE INDEX idx_documents_tags ON documents USING GIN(tags);
-CREATE INDEX idx_documents_processing_status ON documents(processing_status);
-CREATE INDEX idx_documents_uploaded_at ON documents(uploaded_at);
-CREATE INDEX idx_documents_content_text ON documents USING GIN(to_tsvector('english', content_text));
-```
-
-**TypeScript Interface:**
-```typescript
-interface Document {
-  id: string;
-  userId: string;
-  filename: string;
-  originalFilename: string;
-  title?: string;
-  category?: string;
-  tags: string[];
-  mimeType: string;
-  fileSize: number;
-  filePath: string;
-  contentText?: string;
-  extractedData: DocumentExtractedData;
-  processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
-  processingError?: string;
-  uploadedAt: Date;
-  processedAt?: Date;
-  deletedAt?: Date;
-}
-
-interface DocumentExtractedData {
-  summary?: string;
-  keyTerms?: string[];
-  entities?: {
-    type: string;
-    value: string;
-    confidence: number;
-    startOffset: number;
-    endOffset: number;
-  }[];
-  metadata?: {
-    pageCount?: number;
-    language?: string;
-    author?: string;
-    createdDate?: string;
-    modifiedDate?: string;
-  };
-  businessContext?: {
-    relevantTo?: string[];
-    actionItems?: string[];
-    contacts?: any[];
-    dates?: Date[];
-  };
-}
-```
-
-### mcp_agents
-MCP (Model Context Protocol) agents and their capabilities.
-
-```sql
-CREATE TABLE mcp_agents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    endpoint VARCHAR(500) NOT NULL,
-    capabilities JSONB NOT NULL DEFAULT '[]',
-    configuration JSONB DEFAULT '{}',
-    status VARCHAR(20) DEFAULT 'active',
-    version VARCHAR(20),
-    health_check_url VARCHAR(500),
-    last_health_check TIMESTAMP,
-    health_status VARCHAR(20) DEFAULT 'unknown',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP
-);
-
--- Indexes
-CREATE INDEX idx_mcp_agents_name ON mcp_agents(name);
-CREATE INDEX idx_mcp_agents_status ON mcp_agents(status);
-CREATE INDEX idx_mcp_agents_capabilities ON mcp_agents USING GIN(capabilities);
-```
-
-**TypeScript Interface:**
-```typescript
-interface MCPAgent {
-  id: string;
-  name: string;
-  description?: string;
-  endpoint: string;
-  capabilities: AgentCapability[];
-  configuration: AgentConfiguration;
-  status: 'active' | 'inactive' | 'error';
-  version?: string;
-  healthCheckUrl?: string;
-  lastHealthCheck?: Date;
-  healthStatus: 'healthy' | 'unhealthy' | 'unknown';
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-interface AgentCapability {
-  name: string;
-  description: string;
-  inputSchema: any;
-  outputSchema: any;
-  examples?: any[];
-}
-
-interface AgentConfiguration {
-  timeout?: number;
-  retries?: number;
-  rateLimit?: {
-    requests: number;
-    window: number;
-  };
-  authentication?: {
-    type: 'none' | 'apikey' | 'oauth';
-    config: any;
-  };
-}
-```
-
-### tasks
-Executed tasks and their results from MCP agents.
-
-```sql
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    session_id UUID REFERENCES chat_sessions(id) ON DELETE SET NULL,
-    agent_id UUID NOT NULL REFERENCES mcp_agents(id) ON DELETE CASCADE,
-    task_type VARCHAR(100) NOT NULL,
-    input_payload JSONB NOT NULL,
-    output_payload JSONB,
-    status VARCHAR(20) DEFAULT 'pending',
-    error_message TEXT,
-    started_at TIMESTAMP DEFAULT NOW(),
-    completed_at TIMESTAMP,
-    processing_time_ms INTEGER,
-    retry_count INTEGER DEFAULT 0,
-    metadata JSONB DEFAULT '{}'
-);
-
--- Indexes
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_tasks_session_id ON tasks(session_id);
-CREATE INDEX idx_tasks_agent_id ON tasks(agent_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_started_at ON tasks(started_at);
-```
+**Purpose**: Track user tasks and send automated reminders.
+**Key Features**:
+- Status tracking for task lifecycle
+- Due date indexing for efficient reminder queries
+- Reminder sent tracking to avoid duplicates
 
 **TypeScript Interface:**
 ```typescript
 interface Task {
   id: string;
   userId: string;
-  sessionId?: string;
-  agentId: string;
-  taskType: string;
-  inputPayload: any;
-  outputPayload?: any;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  errorMessage?: string;
-  startedAt: Date;
+  title: string;
+  description?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  dueDate: Date;
+  reminderSent: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### User Onboarding
+
+#### OnboardingProgress
+Tracks user progress through the onboarding flow.
+
+```prisma
+model OnboardingProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  step        String    // welcome, business_profile, gmail_connect, etc.
+  completedAt DateTime?
+  skipped     Boolean   @default(false)
+  data        Json?     // Step-specific data
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, step])
+  @@index([userId])
+}
+```
+
+**Purpose**: Progressive disclosure onboarding with step tracking.
+**Key Features**:
+- Unique constraint prevents duplicate steps per user
+- Step-specific data storage for flexible onboarding flows
+- Skip tracking for optional steps
+
+**Common Steps**:
+- `welcome`: Initial welcome screen
+- `business_profile`: Business details collection
+- `gmail_connect`: Gmail OAuth setup
+- `notification_preferences`: Notification settings
+- `first_task`: Create first task walkthrough
+
+**TypeScript Interface:**
+```typescript
+interface OnboardingProgress {
+  id: string;
+  userId: string;
+  step: string;
   completedAt?: Date;
-  processingTimeMs?: number;
-  retryCount: number;
-  metadata: TaskMetadata;
-}
-
-interface TaskMetadata {
-  priority?: 'low' | 'medium' | 'high';
-  scheduledFor?: Date;
-  dependencies?: string[];
-  userVisible?: boolean;
-  notifyOnComplete?: boolean;
+  skipped: boolean;
+  data?: {
+    // Step-specific data structure
+    businessType?: string;
+    notificationTime?: string;
+    integrationScopes?: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
-## Relationships
+## Phase 2A: Email Intelligence & Notifications
 
-### Entity Relationship Diagram
+### Email Analysis
+
+#### EmailAnalysis
+AI-powered analysis of Gmail messages for priority and urgency detection.
+
+```prisma
+model EmailAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  emailId           String   @unique
+  subject           String
+  sender            String
+  snippet           String
+  priority          String   // urgent, high, medium, low
+  category          String   // urgent, standard, follow-up, admin, spam
+  urgencyScore      Float
+  businessRelevance Float
+  actionRequired    Boolean
+  keywords          String[]
+  suggestedActions  String[]
+  reasoning         String
+  notificationSent  Boolean  @default(false)
+  analyzedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([priority])
+  @@index([category])
+}
 ```
-users (1) ──── (many) chat_sessions
-  │                        │
-  │                        └── (many) messages
+
+**Purpose**: Analyze incoming emails for business relevance and urgency.
+**Key Features**:
+- AI-driven priority scoring (0-1 float scale)
+- Category classification for filtering
+- Action suggestion generation
+- Notification tracking to prevent spam
+
+**Priority Levels**:
+- `urgent`: Customer complaints, payment issues, safety concerns
+- `high`: Project deadlines, supplier communications
+- `medium`: General business communications
+- `low`: Newsletters, marketing, social updates
+
+**TypeScript Interface:**
+```typescript
+interface EmailAnalysis {
+  id: string;
+  userId: string;
+  emailId: string; // Gmail message ID
+  subject: string;
+  sender: string;
+  snippet: string;
+  priority: 'urgent' | 'high' | 'medium' | 'low';
+  category: 'urgent' | 'standard' | 'follow-up' | 'admin' | 'spam';
+  urgencyScore: number; // 0-1 scale
+  businessRelevance: number; // 0-1 scale
+  actionRequired: boolean;
+  keywords: string[];
+  suggestedActions: string[];
+  reasoning: string; // AI explanation
+  notificationSent: boolean;
+  analyzedAt: Date;
+  createdAt: Date;
+}
+```
+
+### Notification Management
+
+#### NotificationPreference
+User-specific notification settings and timing preferences.
+
+```prisma
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // morning_brief, urgent_email, task_reminder, etc.
+  enabled           Boolean  @default(true)
+  timingPreferences Json?    // {startHour, startMinute, endHour, endMinute, timezone, daysOfWeek}
+  channels          Json?    // {push: true, email: false, sms: false}
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+```
+
+**Purpose**: Fine-grained notification control per user and notification type.
+**Key Features**:
+- Type-specific settings (morning brief vs urgent emails)
+- Multi-channel support (push, email, SMS)
+- Timing windows for business hours
+
+**Notification Types**:
+- `morning_brief`: Daily email summary
+- `urgent_email`: Immediate urgent email alerts
+- `task_reminder`: Task due date reminders
+- `system_update`: Application updates
+
+#### NotificationToken
+Device tokens for push notifications.
+
+```prisma
+model NotificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   // web, ios, android
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+```
+
+**Purpose**: Firebase Cloud Messaging (FCM) token management.
+**Key Features**:
+- Multi-device support per user
+- Platform-specific token handling
+- Active status for token cleanup
+
+#### NotificationLog
+Audit trail for all notifications sent.
+
+```prisma
+model NotificationLog {
+  id       String    @id @default(cuid())
+  userId   String
+  type     String    // notification type
+  title    String
+  body     String
+  data     Json?
+  channel  String    // push, email, sms
+  status   String    // pending, sent, delivered, failed, read
+  sentAt   DateTime?
+  readAt   DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+```
+
+**Purpose**: Track notification delivery and engagement metrics.
+**Key Features**:
+- Status tracking for delivery confirmation
+- Read receipt tracking
+- Debugging failed notifications
+
+**TypeScript Interfaces:**
+```typescript
+interface NotificationPreference {
+  id: string;
+  userId: string;
+  type: 'morning_brief' | 'urgent_email' | 'task_reminder' | 'system_update';
+  enabled: boolean;
+  timingPreferences?: {
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
+    timezone: string;
+    daysOfWeek: number[]; // 0-6, Sunday=0
+  };
+  channels?: {
+    push: boolean;
+    email: boolean;
+    sms: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface NotificationLog {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  data?: any;
+  channel: 'push' | 'email' | 'sms';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+  sentAt?: Date;
+  readAt?: Date;
+  createdAt: Date;
+}
+```
+
+## Phase 2B: Industry Intelligence & Business Context
+
+### Industry Knowledge Management
+
+#### IndustrySource
+External sources for Australian trade industry information.
+
+```prisma
+model IndustrySource {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  url         String?
+  isActive    Boolean      @default(true)
+  lastCrawled DateTime?
+  items       IndustryItem[]
+  crawls      CrawlLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+```
+
+**Purpose**: Manage sources of Australian trade standards and regulations.
+**Key Sources**:
+- Standards Australia
+- Safe Work Australia
+- Australian Building Codes Board
+- State-specific trade authorities
+- Industry association websites
+
+#### ContentType Enum
+Categorizes different types of industry content.
+
+```prisma
+enum ContentType {
+  regulation
+  standard
+  pricing
+  safety
+  best_practice
+}
+```
+
+**Content Types**:
+- `regulation`: Legal requirements and compliance
+- `standard`: Australian Standards (AS/NZS)
+- `pricing`: Market rates and pricing guides
+- `safety`: Work health and safety requirements
+- `best_practice`: Industry recommendations
+
+#### IndustryItem
+Specific pieces of industry knowledge and standards.
+
+```prisma
+model IndustryItem {
+  id             String      @id @default(cuid())
+  sourceId       String
+  source         IndustrySource @relation(fields: [sourceId], references: [id])
+  contentType    ContentType
+  category       String
+  title          String
+  content        String
+  relevanceScore Float       @default(0)
+  sourceUrl      String?
+  lastUpdated    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([category])
+  @@index([contentType])
+  @@index([relevanceScore])
+}
+```
+
+**Purpose**: Store and index searchable industry knowledge.
+**Key Features**:
+- AI-generated relevance scoring for search ranking
+- Category-based organization (electrical, plumbing, carpentry)
+- Full-text content for AI context retrieval
+
+**Categories**:
+- `electrical`: Electrical work standards and regulations
+- `plumbing`: Plumbing codes and water safety
+- `carpentry`: Building standards and timber regulations
+- `hvac`: Heating, ventilation, air conditioning
+- `general`: Cross-trade regulations and safety
+
+#### CrawlLog
+Audit trail for automated data collection from industry sources.
+
+```prisma
+model CrawlLog {
+  id        String   @id @default(cuid())
+  sourceId  String
+  source    IndustrySource @relation(fields: [sourceId], references: [id])
+  status    String
+  message   String?
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+}
+```
+
+**Purpose**: Track automated crawling of industry websites.
+**Statuses**:
+- `running`: Crawl in progress
+- `completed`: Successful completion
+- `failed`: Error occurred
+- `partial`: Some content retrieved
+
+**TypeScript Interfaces:**
+```typescript
+interface IndustryItem {
+  id: string;
+  sourceId: string;
+  source: IndustrySource;
+  contentType: 'regulation' | 'standard' | 'pricing' | 'safety' | 'best_practice';
+  category: string;
+  title: string;
+  content: string;
+  relevanceScore: number; // 0-1 AI-generated score
+  sourceUrl?: string;
+  lastUpdated: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface IndustrySource {
+  id: string;
+  name: string;
+  url?: string;
+  isActive: boolean;
+  lastCrawled?: Date;
+  items: IndustryItem[];
+  crawls: CrawlLog[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Database Relationships
+
+### Entity Relationship Overview
+```
+User (1) ──────────── (1) UserPreference
   │
-  ├── (many) integrations
-  ├── (many) documents
-  └── (many) tasks
-              │
-              └── (many) mcp_agents
+  ├── (many) OnboardingProgress
+  ├── (many) Task
+  ├── (many) EmailAnalysis
+  ├── (many) NotificationPreference
+  ├── (many) NotificationToken
+  └── (many) NotificationLog
+
+IndustrySource (1) ── (many) IndustryItem
+  │
+  └── (many) CrawlLog
 ```
 
-## Data Validation Rules
+### Key Foreign Key Relationships
+- All user-scoped models reference `User.id`
+- `IndustryItem.sourceId` → `IndustrySource.id`
+- `CrawlLog.sourceId` → `IndustrySource.id`
 
-### User Data
-- Email must be valid and unique
-- Password must meet security requirements (8+ chars, mixed case, numbers)
-- Business type must be from predefined list
-- Timezone must be valid IANA timezone
+### Unique Constraints
+- `User.email` - Single email per account
+- `IndustrySource.name` - Unique source names
+- `EmailAnalysis.emailId` - One analysis per Gmail message
+- `OnboardingProgress.[userId, step]` - One record per step per user
+- `NotificationPreference.[userId, type]` - One preference per notification type
 
-### Chat Data
-- Session title max 255 characters
-- Message content max 10,000 characters
-- Context data must be valid JSON
-
-### Integration Data
-- Provider must be supported integration type
-- Tokens must be encrypted before storage
-- Scopes must be valid for provider
-
-### Document Data
-- File size limited to 10MB
-- Supported MIME types: PDF, DOC, DOCX, TXT
-- Tags limited to 10 per document
-
-## Data Retention Policies
-
-### Chat Data
-- Active sessions: Indefinite
-- Archived sessions: 2 years
-- Deleted sessions: 30 days (soft delete)
-
-### Integration Data
-- Active integrations: Indefinite
-- Disconnected integrations: 90 days
-- Token refresh history: 30 days
-
-### Document Data
-- Uploaded documents: Indefinite (user controlled)
-- Processing logs: 90 days
-- Deleted documents: 30 days (soft delete)
-
-### Task Data
-- Completed tasks: 1 year
-- Failed tasks: 6 months
-- Task logs: 90 days
-
-## Performance Considerations
+## Performance Optimization
 
 ### Indexing Strategy
-- Primary keys: UUID v4 for distributed systems
-- Foreign keys: Always indexed
-- Frequently queried columns: Indexed
-- JSON columns: GIN indexes for complex queries
-- Text search: Full-text search indexes
+The schema includes strategic indexes for query performance:
 
-### Partitioning
-- Messages table: Partition by month
-- Tasks table: Partition by status and date
-- Documents table: Consider partitioning by user_id for large datasets
+**User-scoped Queries**:
+- All models with `userId` have indexes for user-specific data retrieval
+- Composite indexes on `[userId, type]` for notification preferences
 
-### Caching Strategy
-- User sessions: Redis with 24h TTL
-- Integration tokens: Redis with token expiry TTL
-- Frequently accessed documents: Redis with 1h TTL
-- MCP agent capabilities: Redis with 6h TTL
+**Time-based Queries**:
+- `Task.dueDate` - For reminder scheduling
+- `EmailAnalysis.analyzedAt` - For recent email analysis
+- `NotificationLog.createdAt` - For notification history
 
-This data model provides a robust foundation for the AI-powered administrative assistant application with proper normalization, performance optimization, and scalability considerations.
+**Content Discovery**:
+- `IndustryItem.[category, contentType, relevanceScore]` - For AI knowledge retrieval
+- `EmailAnalysis.[priority, category]` - For email filtering
+
+**Notification Processing**:
+- `NotificationToken.token` - For FCM token lookup
+- `NotificationLog.status` - For delivery tracking
+
+### Query Performance Considerations
+
+**Hot Paths**:
+1. **Email Analysis Lookup**: `WHERE userId = ? AND priority = 'urgent'`
+2. **Task Reminders**: `WHERE status = 'pending' AND dueDate < NOW()`
+3. **Industry Knowledge Search**: `WHERE category = ? AND contentType = ?`
+4. **Notification Delivery**: `WHERE userId = ? AND active = true`
+
+**JSON Column Usage**:
+- `NotificationPreference.timingPreferences` - Structured timing rules
+- `UserPreference.businessProfile` - Flexible business metadata
+- `OnboardingProgress.data` - Step-specific configuration
+- `NotificationLog.data` - Notification payload data
+
+## Data Validation and Business Rules
+
+### User Management
+- `User.email` must be valid email format and unique
+- `UserPreference.businessProfile.businessType` from predefined enum
+- `OnboardingProgress.step` must match application flow steps
+
+### Task Management
+- `Task.status` limited to: pending, completed, cancelled
+- `Task.dueDate` must be future date for new tasks
+- `Task.title` required, max 255 characters
+
+### Email Intelligence
+- `EmailAnalysis.emailId` must be valid Gmail message ID
+- `EmailAnalysis.urgencyScore` range: 0.0 to 1.0
+- `EmailAnalysis.priority` from: urgent, high, medium, low
+
+### Notification System
+- `NotificationToken.platform` limited to: web, ios, android
+- `NotificationPreference.type` must match supported notification types
+- `NotificationLog.status` follows delivery lifecycle states
+
+### Industry Knowledge
+- `IndustryItem.contentType` must use ContentType enum
+- `IndustryItem.relevanceScore` range: 0.0 to 1.0
+- `IndustrySource.name` must be unique across all sources
+
+## Data Retention and Maintenance
+
+### Automated Cleanup Policies
+
+**Notification Data**:
+- `NotificationLog`: Retain 6 months for analytics
+- `NotificationToken`: Remove inactive tokens after 30 days
+
+**Task Management**:
+- `Task` (completed): Retain 1 year
+- `Task` (cancelled): Retain 6 months
+
+**Email Analysis**:
+- `EmailAnalysis`: Retain 1 year for learning
+- Purge after Gmail message deletion
+
+**Industry Knowledge**:
+- `IndustryItem`: Indefinite retention
+- `CrawlLog`: Retain 3 months for debugging
+
+**User Data**:
+- `OnboardingProgress`: Retain indefinitely
+- `UserPreference`: Retain until account deletion
+
+### Maintenance Operations
+
+**Weekly Tasks**:
+- Update `IndustryItem.relevanceScore` based on user interactions
+- Archive old `NotificationLog` entries
+- Cleanup inactive `NotificationToken` records
+
+**Monthly Tasks**:
+- Reindex `IndustryItem.content` for full-text search
+- Analyze `EmailAnalysis` patterns for model improvement
+- Cleanup completed `CrawlLog` entries
+
+## Migration Strategy
+
+### Database Versioning
+The application uses Prisma migrations for schema evolution:
+
+```bash
+# Generate new migration
+npx prisma migrate dev --name "add_feature_name"
+
+# Apply to production
+npx prisma migrate deploy
+```
+
+### Migration Best Practices
+1. **Backward Compatibility**: New columns should be nullable or have defaults
+2. **Index Creation**: Add indexes in separate migrations for large tables
+3. **Data Migration**: Use Prisma scripts for data transformation
+4. **Rollback Strategy**: Always test rollback procedures
+
+### Current Schema Version
+- **Phase 2A**: Email intelligence and notification management
+- **Phase 2B**: Industry knowledge and business context
+- **Status**: Active development with incremental migrations
+
+## Backup and Recovery
+
+### Backup Strategy
+- **Frequency**: Daily automated backups
+- **Retention**: 30 days rolling retention
+- **Critical Data**: Extra protection for user preferences and industry knowledge
+
+### Recovery Procedures
+1. **Point-in-time Recovery**: PostgreSQL WAL-based recovery
+2. **Data Corruption**: Restore from nearest backup
+3. **Schema Issues**: Rollback migrations and restore data
+
+---
+
+This data model supports the current Phase 2 implementation of the AI-powered administrative assistant, with robust notification management, email intelligence, and Australian trade industry knowledge integration.
