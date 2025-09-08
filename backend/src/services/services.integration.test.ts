@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from 'vitest';
 import { NotificationService } from './notificationService';
 import { EmailUrgencyDetectionService } from './emailUrgencyDetection';
 import { OnboardingService } from './onboardingService';
 import { SchedulerService } from './scheduler';
+import { DIContainer } from '../repositories/RepositoryFactory.js';
+import { PrismaClient } from '@prisma/client';
 
 // Mock PrismaClient with all required models
 const createMockPrisma = () => ({
@@ -55,141 +57,173 @@ const createMockPrisma = () => ({
 });
 
 describe('Services Integration Tests', () => {
+  let mockPrisma: any;
+
+  beforeAll(() => {
+    // Initialize DIContainer for the tests
+    mockPrisma = createMockPrisma();
+    // Mock the DIContainer initialization
+    vi.spyOn(DIContainer, 'initialize').mockImplementation(() => {});
+    vi.spyOn(DIContainer, 'getInstance').mockReturnValue({
+      notificationPreference: {
+        findByUserId: vi.fn(),
+        upsertPreference: vi.fn(),
+        findEnabledByType: vi.fn(),
+      },
+      notificationToken: {
+        findActiveByUserId: vi.fn(),
+        upsertUserToken: vi.fn(),
+      },
+      notificationLog: {
+        create: vi.fn(),
+        markAsSent: vi.fn(),
+        findByUserId: vi.fn(),
+        markAsRead: vi.fn(),
+      },
+      emailAnalysis: {
+        count: vi.fn(),
+      },
+      task: {
+        count: vi.fn(),
+      },
+    } as any);
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('NotificationService', () => {
     let service: NotificationService;
-    let mockPrisma: any;
 
     beforeEach(() => {
-      mockPrisma = createMockPrisma();
       service = new NotificationService();
     });
 
     it('should initialize and handle basic operations', async () => {
-      // Test getPreferences - create default when none exist
-      mockPrisma.notificationPreference.findUnique.mockResolvedValue(null);
-      mockPrisma.notificationPreference.create.mockResolvedValue({
-        id: '1',
-        userId: 'user-123',
-        morningBriefEnabled: true,
-        morningBriefTime: '09:00',
-        pushEnabled: true,
-        emailDigestEnabled: true,
-        urgentAlertsEnabled: true,
-      });
+      // Get the mocked container
+      const mockContainer = DIContainer.getInstance() as any;
+      
+      // Test getPreferences
+      mockContainer.notificationPreference.findByUserId.mockResolvedValue([
+        {
+          id: '1',
+          userId: 'user-123',
+          type: 'morning_brief',
+          enabled: true,
+          timingPreferences: { startHour: 9, startMinute: 0 },
+          channels: { push: true, email: false },
+        }
+      ]);
 
       const prefs = await service.getPreferences('user-123');
       expect(prefs).toBeDefined();
-      expect(prefs.morningBriefEnabled).toBe(true);
+      expect(Array.isArray(prefs)).toBe(true);
 
-      // Test sendNotification
-      mockPrisma.notification.create.mockResolvedValue({
+      // Test sendPushNotification
+      mockContainer.notificationToken.findActiveByUserId.mockResolvedValue([
+        { id: '1', userId: 'user-123', token: 'test-token', platform: 'web' }
+      ]);
+
+      mockContainer.notificationLog.create.mockResolvedValue({
         id: 'notif-1',
         userId: 'user-123',
         title: 'Test',
-        message: 'Test message',
-        type: 'info',
-        priority: 'normal',
-        read: false,
+        body: 'Test message',
+        type: 'custom',
+        status: 'pending',
+        channel: 'push',
         createdAt: new Date(),
       });
 
-      const notification = await service.sendNotification(
-        'user-123',
-        'Test',
-        'Test message',
-        'info',
-        'normal'
-      );
+      mockContainer.notificationLog.markAsSent.mockResolvedValue({ id: 'notif-1' });
+
+      const notification = await service.sendPushNotification('user-123', {
+        title: 'Test',
+        body: 'Test message',
+      });
       expect(notification).toBeDefined();
       expect(notification.title).toBe('Test');
 
       // Test generateMorningBrief
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-123',
-        name: 'Test User',
-        email: 'test@example.com',
-      });
+      mockContainer.emailAnalysis.count.mockResolvedValue(2);
+      mockContainer.task.count.mockResolvedValue(5);
 
       const brief = await service.generateMorningBrief('user-123');
       expect(brief).toBeDefined();
-      expect(brief.userId).toBe('user-123');
+      expect(brief.title).toContain('Good morning');
       expect(brief.sections).toBeInstanceOf(Array);
     });
   });
 
-  describe('EmailAnalysisService', () => {
-    let service: EmailAnalysisService;
-    let mockPrisma: any;
+  describe('EmailUrgencyDetectionService', () => {
+    let service: EmailUrgencyDetectionService;
 
     beforeEach(() => {
-      mockPrisma = createMockPrisma();
       service = new EmailUrgencyDetectionService(mockPrisma);
+      // Mock the saveAnalysis method
+      mockPrisma.emailAnalysis = {
+        create: vi.fn().mockResolvedValue({
+          id: '1',
+          analyzedAt: new Date(),
+        }),
+        findMany: vi.fn(),
+        findFirst: vi.fn(),
+        count: vi.fn(),
+      };
     });
 
-    it('should analyze email urgency correctly', () => {
-      // Test high urgency
-      const highUrgency = service.analyzeUrgency(
-        'URGENT: Need response ASAP',
-        'This is critical and needs immediate attention'
-      );
-      expect(highUrgency.level).toBe('high');
-      expect(highUrgency.score).toBeGreaterThanOrEqual(7);
+    it('should analyze email urgency correctly', async () => {
+      const email = {
+        userId: 'user-123',
+        emailId: 'email-1',
+        subject: 'URGENT: Need response ASAP',
+        from: 'client@company.com',
+        snippet: 'This is critical and needs immediate attention',
+        receivedAt: new Date(),
+      };
 
-      // Test medium urgency
-      const mediumUrgency = service.analyzeUrgency(
-        'Important update',
-        'Please review when you get a chance'
-      );
-      expect(mediumUrgency.level).toBe('medium');
-      expect(mediumUrgency.score).toBeLessThan(7);
-
-      // Test low urgency
-      const lowUrgency = service.analyzeUrgency(
-        'FYI',
-        'Just sharing some information'
-      );
-      expect(lowUrgency.level).toBe('low');
-      expect(lowUrgency.score).toBeLessThan(4);
+      const analysis = await service.analyzeEmail(email);
+      
+      expect(analysis).toBeDefined();
+      expect(analysis.priority).toBe('urgent');
+      expect(analysis.urgencyScore).toBeGreaterThanOrEqual(70);
+      expect(analysis.category).toBe('urgent');
     });
 
-    it('should categorize emails correctly', () => {
-      // Test work email
-      const workEmail = service.categorizeEmail(
-        'Project Update',
-        'The project is progressing well',
-        'boss@company.com'
-      );
-      expect(workEmail.category).toBe('work');
+    it('should analyze business emails correctly', async () => {
+      const email = {
+        userId: 'user-123',
+        emailId: 'email-2',
+        subject: 'Invoice Payment Due',
+        from: 'billing@supplier.com',
+        snippet: 'Please find attached invoice for services rendered',
+        receivedAt: new Date(),
+      };
 
-      // Test personal email
-      const personalEmail = service.categorizeEmail(
-        'Happy Birthday!',
-        'Hope you have a great day',
-        'friend@gmail.com'
-      );
-      expect(personalEmail.category).toBe('personal');
-
-      // Test promotional email
-      const promoEmail = service.categorizeEmail(
-        '50% OFF Sale',
-        'Limited time offer',
-        'promo@store.com'
-      );
-      expect(promoEmail.category).toBe('promotional');
+      const analysis = await service.analyzeEmail(email);
+      
+      expect(analysis).toBeDefined();
+      expect(analysis.businessRelevance).toBeGreaterThanOrEqual(50);
+      expect(analysis.keywords).toContain('invoice');
     });
 
-    it('should generate email drafts', () => {
-      const draft = service.generateDraft({
-        originalSubject: 'Meeting Request',
-        originalContent: 'Can we meet tomorrow?',
-        sender: 'colleague@company.com',
-        intent: 'accept',
+    it('should get recent analyses', async () => {
+      const mockAnalyses = [
+        { id: '1', userId: 'user-123', emailId: 'email-1', priority: 'high' },
+        { id: '2', userId: 'user-123', emailId: 'email-2', priority: 'medium' },
+      ];
+      
+      mockPrisma.emailAnalysis.findMany.mockResolvedValue(mockAnalyses);
+      
+      const results = await service.getRecentAnalyses('user-123', 10);
+      
+      expect(results).toEqual(mockAnalyses);
+      expect(mockPrisma.emailAnalysis.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+        orderBy: { analyzedAt: 'desc' },
+        take: 10
       });
-
-      expect(draft).toBeDefined();
-      expect(draft.subject).toContain('Re:');
-      expect(draft.content).toBeTruthy();
-      expect(draft.metadata.intent).toBe('accept');
     });
   });
 

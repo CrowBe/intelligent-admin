@@ -12,13 +12,15 @@
     "test:once": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:storybook": "vitest run --config vitest.storybook.config.ts",
+    "test:storybook:watch": "vitest --config vitest.storybook.config.ts",
+    "test:all": "npm run test:once && npm run test:storybook",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "storybook:ci": "storybook dev -p 6006 --ci",
     "build-storybook": "storybook build",
-    "test:storybook": "vitest --project storybook",
     "test:visual": "npm run build-storybook"
   },
   "dependencies": {

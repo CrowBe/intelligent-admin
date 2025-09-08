@@ -12,6 +12,12 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: ['./tsconfig.json']
+      },
+      globals: {
+        process: 'readonly',
+        performance: 'readonly',
+        global: 'readonly',
+        URL: 'readonly'
       }
     },
     plugins: {
@@ -71,6 +77,14 @@ export default [
       'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
       'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],
       'max-params': ['warn', { max: 4 }]
+    }
+  },
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      'max-lines': 'off',
+      'max-lines-per-function': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn'
     }
   },
   {

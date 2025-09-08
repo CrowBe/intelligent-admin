@@ -1,0 +1,151 @@
+// Test schema for SQLite in-memory database
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model IndustrySource {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  url         String?
+  isActive    Boolean      @default(true)
+  lastCrawled DateTime?
+  items       IndustryItem[]
+  crawls      CrawlLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model IndustryItem {
+  id             String      @id @default(cuid())
+  sourceId       String
+  source         IndustrySource @relation(fields: [sourceId], references: [id])
+  contentType    String      // Using String instead of enum for SQLite compatibility
+  category       String
+  title          String
+  content        String
+  relevanceScore Float       @default(0)
+  sourceUrl      String?
+  lastUpdated    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model CrawlLog {
+  id        String   @id @default(cuid())
+  sourceId  String
+  source    IndustrySource @relation(fields: [sourceId], references: [id])
+  status    String
+  message   String?
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+}
+
+// Phase 2A: Notification Management
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // morning_brief, urgent_email, task_reminder, etc.
+  enabled           Boolean  @default(true)
+  timingPreferences String?  // JSON as String for SQLite
+  channels          String?  // JSON as String for SQLite
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, type])
+}
+
+model NotificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   // web, ios, android
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationLog {
+  id       String    @id @default(cuid())
+  userId   String
+  type     String    // notification type
+  title    String
+  body     String
+  data     String?   // JSON as String for SQLite
+  channel  String    // push, email, sms
+  status   String    // pending, sent, delivered, failed, read
+  sentAt   DateTime?
+  readAt   DateTime?
+  createdAt DateTime @default(now())
+}
+
+// Phase 2A: Email Analysis
+model EmailAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  emailId           String   @unique
+  subject           String
+  sender            String
+  snippet           String
+  priority          String   // urgent, high, medium, low
+  category          String   // urgent, standard, follow-up, admin, spam
+  urgencyScore      Float
+  businessRelevance Float
+  actionRequired    Boolean
+  keywords          String   // JSON array as String for SQLite
+  suggestedActions  String   // JSON array as String for SQLite
+  reasoning         String
+  notificationSent  Boolean  @default(false)
+  analyzedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+}
+
+// Phase 2A: Onboarding
+model OnboardingProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  step        String    // welcome, business_profile, gmail_connect, etc.
+  completedAt DateTime?
+  skipped     Boolean   @default(false)
+  data        String?   // JSON as String for SQLite
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, step])
+}
+
+// User preferences and business profile
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessProfile String?  // JSON as String for SQLite
+  preferences     String   // JSON as String for SQLite
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Tasks for reminders
+model Task {
+  id           String    @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  status       String    @default("pending") // pending, completed, cancelled
+  dueDate      DateTime
+  reminderSent Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// Placeholder for User model (if not exists)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

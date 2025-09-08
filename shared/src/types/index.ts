@@ -122,20 +122,20 @@ export interface Integration {
     refreshToken?: string;
     expiresAt?: Date;
   };
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   lastSyncAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
   meta?: {
     page?: number;
@@ -180,7 +180,7 @@ export interface AppError {
   code: string;
   message: string;
   statusCode: number;
-  details?: any;
+  details?: unknown;
 }
 
 // Utility Types
