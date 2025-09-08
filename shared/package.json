@@ -11,9 +11,14 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:performance": "vitest run --testNamePattern='Performance Tests'",
+    "test:compatibility": "vitest run --testNamePattern='Cross-Platform Compatibility Tests'",
     "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist coverage"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

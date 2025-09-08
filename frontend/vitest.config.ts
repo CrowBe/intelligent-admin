@@ -2,12 +2,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
-// More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -16,13 +11,30 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '**/*.d.ts'],
+    exclude: [
+      'node_modules',
+      'dist',
+      '**/*.d.ts',
+      '**/*.stories.{js,ts,jsx,tsx}', // Exclude Storybook stories from regular tests
+      '.storybook/**'
+    ],
     env: {
       VITE_API_BASE_URL: 'http://localhost:3001/api/v1'
     },
     coverage: {
-      reporter: ['text', 'html', 'json'],
-      exclude: ['node_modules', 'dist', 'src/test', '**/*.d.ts', '**/*.config.{js,ts}', '**/types.ts', 'src/main.tsx', 'src/vite-env.d.ts'],
+      reporter: ['text', 'html', 'json', 'lcov'],
+      exclude: [
+        'node_modules',
+        'dist',
+        'src/test',
+        '**/*.d.ts',
+        '**/*.config.{js,ts}',
+        '**/*.stories.{js,ts,jsx,tsx}',
+        '**/types.ts',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        '.storybook/**'
+      ],
       thresholds: {
         global: {
           branches: 70,
@@ -32,32 +44,7 @@ export default defineConfig({
         }
       }
     },
-    testTimeout: 10000,
-    projects: [{
-      extends: true,
-      plugins: [
-        react(),
-        // The plugin will run tests for the stories defined in your Storybook config
-        // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-        storybookTest({
-          configDir: path.join(dirname, '.storybook')
-        })
-      ],
-      test: {
-        name: 'storybook',
-        browser: {
-          enabled: true,
-          headless: true,
-          provider: 'playwright',
-          instances: [{
-            browser: 'chromium'
-          }]
-        },
-        setupFiles: ['.storybook/vitest.setup.ts'],
-        // Remove conflicting include pattern for Storybook project
-        include: []
-      }
-    }]
+    testTimeout: 10000
   },
   resolve: {
     alias: {

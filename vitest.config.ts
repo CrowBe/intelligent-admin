@@ -11,8 +11,30 @@ export default defineConfig({
     // Global test configuration
     reporter: ['verbose'],
     coverage: {
-      reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
+      reporter: ['text', 'json', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      // Global coverage thresholds that apply when running all projects
+      thresholds: {
+        global: {
+          lines: 75,
+          functions: 75,
+          branches: 70,
+          statements: 75,
+        }
+      },
+      // Aggregate coverage across all projects
+      exclude: [
+        'node_modules',
+        'dist',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/*.test.*',
+        '**/*.spec.*',
+        '**/test/**',
+        '**/tests/**',
+        '**/.storybook/**',
+        '**/storybook-static/**'
+      ]
     }
   }
 })

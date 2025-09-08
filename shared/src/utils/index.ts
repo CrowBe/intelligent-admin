@@ -34,17 +34,27 @@ export const formatTimeAgo = (date: Date | string): string => {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) {
+    return 'Just now';
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
   return formatDate(date);
 };
 
 // String Utilities
 export const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength - 3) + '...';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.substring(0, maxLength - 3)}...`;
 };
 
 export const capitalizeFirst = (str: string): string => {
@@ -66,15 +76,18 @@ export const isValidEmail = (email: string): boolean => {
 };
 
 export const extractEmailDomain = (email: string): string => {
-  return email.split('@')[1] || '';
+  const parts = email.split('@');
+  return parts[1] ?? '';
 };
 
 export const maskEmail = (email: string): string => {
   const [username, domain] = email.split('@');
-  if (!username || !domain) return email;
+  if (username === undefined || username === '' || domain === undefined || domain === '') {
+    return email;
+  }
   
   const maskedUsername = username.length > 2 
-    ? username[0] + '*'.repeat(username.length - 2) + username[username.length - 1]
+    ? `${username[0]}${'*'.repeat(username.length - 2)}${username[username.length - 1]}`
     : username;
   
   return `${maskedUsername}@${domain}`;
@@ -107,13 +120,13 @@ export const formatCurrency = (amount: number, currency: string = 'AUD'): string
 };
 
 // Array Utilities
-export const groupBy = <T, K extends keyof any>(
+export const groupBy = <T, K extends string | number | symbol>(
   array: T[],
   key: (item: T) => K
 ): Record<K, T[]> => {
   return array.reduce((groups, item) => {
     const group = key(item);
-    groups[group] = groups[group] || [];
+    groups[group] ??= [];
     groups[group].push(item);
     return groups;
   }, {} as Record<K, T[]>);
@@ -123,7 +136,9 @@ export const uniqueBy = <T, K>(array: T[], key: (item: T) => K): T[] => {
   const seen = new Set<K>();
   return array.filter(item => {
     const k = key(item);
-    if (seen.has(k)) return false;
+    if (seen.has(k)) {
+      return false;
+    }
     seen.add(k);
     return true;
   });
@@ -149,7 +164,7 @@ export const isApiError = (response: ApiResponse): response is ApiResponse & { s
 };
 
 // Validation Utilities
-export const validateRequired = (value: any, fieldName: string): string | null => {
+export const validateRequired = (value: unknown, fieldName: string): string | null => {
   if (value === null || value === undefined || value === '') {
     return `${fieldName} is required`;
   }
@@ -173,14 +188,22 @@ export const validateMaxLength = (value: string, maxLength: number, fieldName: s
 // File Utilities
 export const formatFileSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {
+    return '0 Bytes';
+  }
   
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  const size = sizes[i];
+  if (size === undefined) {
+    return '0 Bytes';
+  }
+  return `${Math.round(bytes / Math.pow(1024, i) * 100) / 100} ${size}`;
 };
 
 export const getFileExtension = (filename: string): string => {
-  return filename.split('.').pop()?.toLowerCase() || '';
+  const parts = filename.split('.');
+  const extension = parts.pop();
+  return extension?.toLowerCase() ?? '';
 };
 
 export const isImageFile = (filename: string): boolean => {
@@ -188,11 +211,11 @@ export const isImageFile = (filename: string): boolean => {
   return imageExtensions.includes(getFileExtension(filename));
 };
 
-// URL Utilities
+// URL Utilities (Note: URL is available in Node.js global)
 export const buildUrl = (base: string, path: string, params?: Record<string, string>): string => {
   const url = new URL(path, base);
   
-  if (params) {
+  if (params !== undefined) {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, value);
     });
@@ -206,7 +229,7 @@ export const createAppError = (
   code: string,
   message: string,
   statusCode: number = 500,
-  details?: any
+  details?: unknown
 ): AppError => ({
   code,
   message,
@@ -214,7 +237,7 @@ export const createAppError = (
   details,
 });
 
-// Environment Utilities
+// Environment Utilities (Note: process is available in Node.js global)
 export const isDevelopment = (): boolean => {
   return process.env['NODE_ENV'] === 'development';
 };

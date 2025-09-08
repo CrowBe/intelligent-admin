@@ -1,0 +1,145 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM UTC
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Setup test database
+      env:
+        DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+      run: |
+        cd backend
+        npx prisma generate
+        npx prisma migrate deploy
+    
+    - name: Performance Test - Full Test Suite (Target < 2 minutes)
+      id: full_tests
+      run: |
+        start_time=$(date +%s)
+        timeout 120 npm run test || test_result=$?
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "duration=$duration" >> $GITHUB_OUTPUT
+        echo "Full test suite completed in ${duration}s (target: <120s)"
+        if [ $duration -gt 120 ]; then
+          echo "⚠️ WARNING: Test suite took ${duration}s, exceeding 2-minute target"
+          exit 1
+        fi
+      env:
+        DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+        NODE_ENV: test
+        JWT_SECRET: test-secret-key-for-performance-testing-minimum-32-characters
+        OPENAI_API_KEY: sk-test-key-for-performance-testing-purposes-only
+    
+    - name: Performance Test - Backend Only (Target < 30 seconds)
+      id: backend_tests
+      run: |
+        start_time=$(date +%s)
+        npm run test:backend
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "backend_duration=$duration" >> $GITHUB_OUTPUT
+        echo "Backend tests completed in ${duration}s (target: <30s)"
+        if [ $duration -gt 30 ]; then
+          echo "⚠️ WARNING: Backend tests took ${duration}s, exceeding 30-second target"
+          exit 1
+        fi
+      env:
+        DATABASE_URL: postgresql://postgres:test@localhost:5432/test
+        NODE_ENV: test
+        JWT_SECRET: test-secret-key-for-performance-testing-minimum-32-characters
+        OPENAI_API_KEY: sk-test-key-for-performance-testing-purposes-only
+    
+    - name: Performance Test - Frontend Only (Target < 15 seconds)
+      id: frontend_tests
+      run: |
+        start_time=$(date +%s)
+        npm run test:frontend
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "frontend_duration=$duration" >> $GITHUB_OUTPUT
+        echo "Frontend tests completed in ${duration}s (target: <15s)"
+        if [ $duration -gt 15 ]; then
+          echo "⚠️ WARNING: Frontend tests took ${duration}s, exceeding 15-second target"
+          exit 1
+        fi
+    
+    - name: Performance Test - Shared Only (Target < 5 seconds)
+      id: shared_tests
+      run: |
+        start_time=$(date +%s)
+        npm run test:shared
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "shared_duration=$duration" >> $GITHUB_OUTPUT
+        echo "Shared tests completed in ${duration}s (target: <5s)"
+        if [ $duration -gt 5 ]; then
+          echo "⚠️ WARNING: Shared tests took ${duration}s, exceeding 5-second target"
+          exit 1
+        fi
+    
+    - name: Build Performance Test (Target < 60 seconds)
+      id: build_test
+      run: |
+        start_time=$(date +%s)
+        cd frontend && npm run build &
+        cd ../backend && npm run build &
+        wait
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        echo "build_duration=$duration" >> $GITHUB_OUTPUT
+        echo "Build completed in ${duration}s (target: <60s)"
+        if [ $duration -gt 60 ]; then
+          echo "⚠️ WARNING: Build took ${duration}s, exceeding 60-second target"
+          exit 1
+        fi
+    
+    - name: Performance Summary
+      run: |
+        echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Component | Duration | Target | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Full Suite | ${{ steps.full_tests.outputs.duration }}s | <120s | $([ ${{ steps.full_tests.outputs.duration }} -le 120 ] && echo "✅ PASS" || echo "❌ FAIL") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Backend | ${{ steps.backend_tests.outputs.backend_duration }}s | <30s | $([ ${{ steps.backend_tests.outputs.backend_duration }} -le 30 ] && echo "✅ PASS" || echo "❌ FAIL") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Frontend | ${{ steps.frontend_tests.outputs.frontend_duration }}s | <15s | $([ ${{ steps.frontend_tests.outputs.frontend_duration }} -le 15 ] && echo "✅ PASS" || echo "❌ FAIL") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Shared | ${{ steps.shared_tests.outputs.shared_duration }}s | <5s | $([ ${{ steps.shared_tests.outputs.shared_duration }} -le 5 ] && echo "✅ PASS" || echo "❌ FAIL") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build | ${{ steps.build_test.outputs.build_duration }}s | <60s | $([ ${{ steps.build_test.outputs.build_duration }} -le 60 ] && echo "✅ PASS" || echo "❌ FAIL") |" >> $GITHUB_STEP_SUMMARY

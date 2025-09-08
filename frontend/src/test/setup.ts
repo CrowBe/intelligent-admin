@@ -61,13 +61,49 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock fetch for API calls
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
+
+// Mock Blob for File constructor
+Object.defineProperty(window, 'Blob', {
+  writable: true,
+  value: class MockBlob {
+    public size: number;
+    public type: string;
+    private data: BlobPart[];
+    
+    constructor(blobParts: BlobPart[] = [], options: BlobPropertyBag = {}) {
+      this.data = blobParts;
+      this.type = options.type || '';
+      this.size = blobParts.reduce((acc, part) => {
+        if (typeof part === 'string') return acc + part.length;
+        return acc + 1024; // Default size for non-string parts
+      }, 0);
+    }
+    
+    slice(start?: number, end?: number, contentType?: string): Blob {
+      return new MockBlob([], { type: contentType });
+    }
+    
+    async text(): Promise<string> {
+      return this.data.join('');
+    }
+  },
+});
 
 // Mock File and FileReader for file upload tests
 Object.defineProperty(window, 'File', {
   writable: true,
-  value: class MockFile {
-    constructor(public name: string, public type: string, public size: number = 1024) {}
+  value: class MockFile extends Blob {
+    public name: string;
+    public lastModified: number;
+    public webkitRelativePath: string;
+    
+    constructor(bits: BlobPart[], name: string, options: FilePropertyBag = {}) {
+      super(bits, { type: options.type });
+      this.name = name;
+      this.lastModified = options.lastModified || Date.now();
+      this.webkitRelativePath = '';
+    }
   },
 });
 

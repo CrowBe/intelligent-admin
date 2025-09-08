@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { PrismaClient } from '@prisma/client';
 import { DIContainer } from '../RepositoryFactory.js';
 import { createUnitOfWork } from '../UnitOfWork.js';
 import type { 
@@ -10,13 +9,7 @@ import type {
 } from '../index.js';
 
 // Test database setup
-const testPrisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_TEST_URL || process.env.DATABASE_URL
-    }
-  }
-});
+import { setupTestDatabase, teardownTestDatabase, getTestPrisma } from '../../test-database-setup.js';
 
 describe('Repository Pattern Tests', () => {
   let container: DIContainer;
@@ -26,6 +19,9 @@ describe('Repository Pattern Tests', () => {
   let taskRepo: TaskRepository;
 
   beforeAll(async () => {
+    // Setup test database
+    const testPrisma = await setupTestDatabase();
+    
     // Initialize DI container with test database
     DIContainer.initialize(testPrisma);
     container = DIContainer.getInstance();
@@ -38,11 +34,12 @@ describe('Repository Pattern Tests', () => {
   });
 
   afterAll(async () => {
-    await testPrisma.$disconnect();
+    await teardownTestDatabase();
   });
 
   beforeEach(async () => {
     // Clean up test data before each test
+    const testPrisma = getTestPrisma();
     await testPrisma.industryItem.deleteMany();
     await testPrisma.industrySource.deleteMany();
     await testPrisma.task.deleteMany();
@@ -362,6 +359,7 @@ describe('Repository Pattern Tests', () => {
 
   describe('Unit of Work Pattern', () => {
     it('should handle transactions correctly', async () => {
+      const testPrisma = getTestPrisma();
       const uow = createUnitOfWork(testPrisma);
 
       await uow.transaction(async (transactionalUow) => {
@@ -389,6 +387,7 @@ describe('Repository Pattern Tests', () => {
     });
 
     it('should rollback on error', async () => {
+      const testPrisma = getTestPrisma();
       const uow = createUnitOfWork(testPrisma);
 
       try {

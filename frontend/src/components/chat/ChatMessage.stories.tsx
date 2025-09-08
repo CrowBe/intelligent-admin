@@ -4,6 +4,13 @@ import { ChatMessage } from './ChatMessage';
 const meta: Meta<typeof ChatMessage> = {
   title: 'Chat/ChatMessage',
   component: ChatMessage,
+  decorators: [
+    (Story) => (
+      <div className="max-w-4xl mx-auto p-4">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
     layout: 'padded',
     docs: {
@@ -14,18 +21,8 @@ const meta: Meta<typeof ChatMessage> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    role: {
-      control: { type: 'select' },
-      options: ['user', 'assistant'],
-      description: 'Whether the message is from user or AI assistant',
-    },
-    content: {
-      control: 'text',
-      description: 'The message content (supports markdown)',
-    },
-    timestamp: {
-      control: 'date',
-      description: 'When the message was sent',
+    message: {
+      description: 'Message object with id, role, content, timestamp, and optional metadata',
     },
   },
 };
@@ -35,16 +32,21 @@ type Story = StoryObj<typeof meta>;
 
 export const UserMessage: Story = {
   args: {
-    role: 'user',
-    content: 'Can you help me understand the new electrical safety regulations for NSW?',
-    timestamp: new Date(),
+    message: {
+      id: '1',
+      role: 'user',
+      content: 'Can you help me understand the new electrical safety regulations for NSW?',
+      timestamp: new Date(),
+    },
   },
 };
 
 export const AssistantMessage: Story = {
   args: {
-    role: 'assistant',
-    content: `Based on the latest AS/NZS 3000:2018 standard, here are the key electrical safety regulations for NSW:
+    message: {
+      id: '2',
+      role: 'assistant',
+      content: `Based on the latest AS/NZS 3000:2018 standard, here are the key electrical safety regulations for NSW:
 
 **Key Requirements:**
 - All electrical work must be performed by licensed electricians
@@ -56,14 +58,17 @@ export const AssistantMessage: Story = {
 - Updated earthing requirements for commercial installations
 
 Would you like me to help you find a licensed electrician in your area?`,
-    timestamp: new Date(Date.now() - 30000), // 30 seconds ago
+      timestamp: new Date(Date.now() - 30000), // 30 seconds ago
+    },
   },
 };
 
 export const LongAssistantMessage: Story = {
   args: {
-    role: 'assistant',
-    content: `I'll help you create a comprehensive safety checklist for your electrical contracting business. Here's what you need to consider:
+    message: {
+      id: '3',
+      role: 'assistant',
+      content: `I'll help you create a comprehensive safety checklist for your electrical contracting business. Here's what you need to consider:
 
 ## Daily Safety Checklist
 
@@ -92,15 +97,19 @@ According to **WorkSafe NSW** guidelines:
 3. Regular training updates for all licensed electricians
 
 Would you like me to create a customized checklist for your specific type of electrical work?`,
-    timestamp: new Date(Date.now() - 120000), // 2 minutes ago
+      timestamp: new Date(Date.now() - 120000), // 2 minutes ago
+    },
   },
 };
 
 export const ErrorMessage: Story = {
   args: {
-    role: 'assistant',
-    content: 'I apologize, but I\'m currently unable to access the latest regulatory information. Please try again in a moment, or contact WorkSafe NSW directly at 13 10 50 for urgent compliance questions.',
-    timestamp: new Date(Date.now() - 60000),
+    message: {
+      id: '4',
+      role: 'assistant',
+      content: 'I apologize, but I\'m currently unable to access the latest regulatory information. Please try again in a moment, or contact WorkSafe NSW directly at 13 10 50 for urgent compliance questions.',
+      timestamp: new Date(Date.now() - 60000),
+    },
   },
   parameters: {
     docs: {
@@ -113,9 +122,12 @@ export const ErrorMessage: Story = {
 
 export const QuickResponse: Story = {
   args: {
-    role: 'assistant',
-    content: '✅ I\'ve scheduled your electrical inspection for next Tuesday at 9:00 AM with Inspector John Smith. You\'ll receive a confirmation email shortly.',
-    timestamp: new Date(Date.now() - 5000), // 5 seconds ago
+    message: {
+      id: '5',
+      role: 'assistant',
+      content: '✅ I\'ve scheduled your electrical inspection for next Tuesday at 9:00 AM with Inspector John Smith. You\'ll receive a confirmation email shortly.',
+      timestamp: new Date(Date.now() - 5000), // 5 seconds ago
+    },
   },
   parameters: {
     docs: {
@@ -128,8 +140,10 @@ export const QuickResponse: Story = {
 
 export const RegulatoryAlert: Story = {
   args: {
-    role: 'assistant',
-    content: `🚨 **URGENT REGULATORY UPDATE**
+    message: {
+      id: '6',
+      role: 'assistant',
+      content: `🚨 **URGENT REGULATORY UPDATE**
 
 New WorkSafe NSW requirements effective immediately:
 
@@ -146,7 +160,8 @@ New WorkSafe NSW requirements effective immediately:
 **Compliance Deadline:** All work commencing after March 1, 2024
 
 Need help updating your procedures? I can create a compliance checklist for your team.`,
-    timestamp: new Date(),
+      timestamp: new Date(),
+    },
   },
   parameters: {
     docs: {
@@ -160,9 +175,12 @@ Need help updating your procedures? I can create a compliance checklist for your
 // Mobile view testing
 export const MobileUserMessage: Story = {
   args: {
-    role: 'user',
-    content: 'Quick question about cable sizing for a 32A circuit',
-    timestamp: new Date(),
+    message: {
+      id: '7',
+      role: 'user',
+      content: 'Quick question about cable sizing for a 32A circuit',
+      timestamp: new Date(),
+    },
   },
   parameters: {
     viewport: {
@@ -178,8 +196,10 @@ export const MobileUserMessage: Story = {
 
 export const MobileAssistantResponse: Story = {
   args: {
-    role: 'assistant',
-    content: `For a 32A circuit in standard conditions:
+    message: {
+      id: '8',
+      role: 'assistant',
+      content: `For a 32A circuit in standard conditions:
 
 **Cable Size:** 6mm² minimum
 **Recommended:** 10mm² for future-proofing
@@ -191,7 +211,8 @@ export const MobileAssistantResponse: Story = {
 - Ensure earthing continuity
 
 Need specific cable calculations for your installation distance?`,
-    timestamp: new Date(Date.now() - 15000),
+      timestamp: new Date(Date.now() - 15000),
+    },
   },
   parameters: {
     viewport: {
@@ -208,9 +229,12 @@ Need specific cable calculations for your installation distance?`,
 // Accessibility testing story
 export const AccessibilityTest: Story = {
   args: {
-    role: 'assistant',
-    content: 'This message tests screen reader compatibility and keyboard navigation support for accessibility compliance.',
-    timestamp: new Date(),
+    message: {
+      id: '9',
+      role: 'assistant',
+      content: 'This message tests screen reader compatibility and keyboard navigation support for accessibility compliance.',
+      timestamp: new Date(),
+    },
   },
   parameters: {
     a11y: {
