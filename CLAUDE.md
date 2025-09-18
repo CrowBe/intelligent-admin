@@ -242,6 +242,7 @@ We are in **Phase 2: Email Intelligence & Industry Knowledge** (see `/docs/devel
 - **Linting**: ESLint + Prettier configuration with strict rules (see Linting Configuration below)
 - **Architecture**: Follow monorepo patterns from `/docs/system-architecture.md` (updated Sept 2024)
 - **Component Organization**: Co-located structure (see Component Standards below)
+- **Stack Migrations**: Follow systematic upgrade procedures from `/docs/migration-guide.md`
 
 #### Linting Configuration
 The project uses a strict, consistent ESLint configuration across all modules:
