@@ -1,115 +1,272 @@
+/* ============================================
+   IMPORT RESPONSIVE STYLES
+   ============================================ */
 @import './styles/responsive.css';
 
+/* ============================================
+   TAILWIND DIRECTIVES
+   ============================================ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbar styles */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--color-border)) hsl(var(--color-muted));
-}
+/* ============================================
+   SHADCN-UI THEME VARIABLES
+   ============================================
+   CSS custom properties for shadcn-ui theming
+   Supports both light and dark modes
+   ============================================ */
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
+@layer base {
+  :root {
+    /* Typography */
+    --font-size: 16px;
+    --font-weight-medium: 500;
+    --font-weight-normal: 400;
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: hsl(var(--color-muted));
-  border-radius: 3px;
-}
+    /* Color System - Light Mode */
+    --background: #fff;
+    --foreground: oklch(.145 0 0);
+    --card: #fff;
+    --card-foreground: oklch(.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(.145 0 0);
+    --primary: #030213;
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(.95 .0058 264.53);
+    --secondary-foreground: #030213;
+    --muted: #ececf0;
+    --muted-foreground: #717182;
+    --accent: #e9ebef;
+    --accent-foreground: #030213;
+    --destructive: #d4183d;
+    --destructive-foreground: #fff;
+    --border: #0000001a;
+    --input: transparent;
+    --input-background: #f3f3f5;
+    --switch-background: #cbced4;
+    --ring: oklch(.708 0 0);
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: hsl(var(--color-border));
-  border-radius: 3px;
-}
+    /* Chart Colors */
+    --chart-1: oklch(.646 .222 41.116);
+    --chart-2: oklch(.6 .118 184.704);
+    --chart-3: oklch(.398 .07 227.392);
+    --chart-4: oklch(.828 .189 84.429);
+    --chart-5: oklch(.769 .188 70.08);
 
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--color-muted-foreground));
-}
+    /* Border Radius */
+    --radius: .625rem;
 
-/* Animation classes */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+    /* Sidebar Theme */
+    --sidebar: oklch(.985 0 0);
+    --sidebar-foreground: oklch(.145 0 0);
+    --sidebar-primary: #030213;
+    --sidebar-primary-foreground: oklch(.985 0 0);
+    --sidebar-accent: oklch(.97 0 0);
+    --sidebar-accent-foreground: oklch(.205 0 0);
+    --sidebar-border: oklch(.922 0 0);
+    --sidebar-ring: oklch(.708 0 0);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .dark {
+    /* Color System - Dark Mode */
+    --background: oklch(.145 0 0);
+    --foreground: oklch(.985 0 0);
+    --card: oklch(.145 0 0);
+    --card-foreground: oklch(.985 0 0);
+    --popover: oklch(.145 0 0);
+    --popover-foreground: oklch(.985 0 0);
+    --primary: oklch(.985 0 0);
+    --primary-foreground: oklch(.205 0 0);
+    --secondary: oklch(.269 0 0);
+    --secondary-foreground: oklch(.985 0 0);
+    --muted: oklch(.269 0 0);
+    --muted-foreground: oklch(.708 0 0);
+    --accent: oklch(.269 0 0);
+    --accent-foreground: oklch(.985 0 0);
+    --destructive: oklch(.396 .141 25.723);
+    --destructive-foreground: oklch(.637 .237 25.331);
+    --border: oklch(.269 0 0);
+    --input: oklch(.269 0 0);
+    --ring: oklch(.439 0 0);
+    --font-weight-medium: 500;
+    --font-weight-normal: 400;
+
+    /* Chart Colors - Dark Mode */
+    --chart-1: oklch(.488 .243 264.376);
+    --chart-2: oklch(.696 .17 162.48);
+    --chart-3: oklch(.769 .188 70.08);
+    --chart-4: oklch(.627 .265 303.9);
+    --chart-5: oklch(.645 .246 16.439);
+
+    /* Sidebar Theme - Dark Mode */
+    --sidebar: oklch(.205 0 0);
+    --sidebar-foreground: oklch(.985 0 0);
+    --sidebar-primary: oklch(.488 .243 264.376);
+    --sidebar-primary-foreground: oklch(.985 0 0);
+    --sidebar-accent: oklch(.269 0 0);
+    --sidebar-accent-foreground: oklch(.985 0 0);
+    --sidebar-border: oklch(.269 0 0);
+    --sidebar-ring: oklch(.439 0 0);
+  }
+
+  html {
+    font-size: var(--font-size);
   }
 }
 
-.slide-up {
-  animation: slideUp 0.2s ease-out;
-}
+/* ============================================
+   CUSTOM SCROLLBAR STYLES
+   ============================================ */
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--color-border, var(--border))) hsl(var(--color-muted, var(--muted)));
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
   }
-}
 
-/* Message typing indicator */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.typing-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: hsl(var(--color-muted-foreground));
-  animation: typing 1.4s infinite ease-in-out;
-}
-
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes typing {
-  0%, 80%, 100% {
-    transform: scale(0);
-    opacity: 0.5;
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: hsl(var(--color-muted, var(--muted)));
+    border-radius: 3px;
   }
-  40% {
-    transform: scale(1);
-    opacity: 1;
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--color-border, var(--border)));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--color-muted-foreground, var(--muted-foreground)));
   }
 }
 
-/* Custom button styles */
-.btn-primary {
-  @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+/* ============================================
+   ANIMATION CLASSES
+   ============================================ */
+
+@layer utilities {
+  /* Fade In Animation */
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Slide Up Animation */
+  .slide-up {
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Accordion Animations (shadcn-ui) */
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height, var(--bits-accordion-content-height));
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, var(--bits-accordion-content-height));
+    }
+    to {
+      height: 0;
+    }
+  }
+
+  /* Typing Indicator Animation */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .typing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: hsl(var(--color-muted-foreground, var(--muted-foreground)));
+    animation: typing 1.4s infinite ease-in-out;
+  }
+
+  .typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+
+  @keyframes typing {
+    0%, 80%, 100% {
+      transform: scale(0);
+      opacity: 0.5;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
 }
 
-.btn-secondary {
-  @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+/* ============================================
+   CUSTOM BUTTON STYLES
+   ============================================ */
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent font-medium py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
 }
 
-.btn-ghost {
-  @apply text-muted-foreground hover:text-foreground hover:bg-accent font-medium py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
-}
+/* ============================================
+   MESSAGE BUBBLE STYLES
+   ============================================ */
 
-/* Message bubble styles */
-.message-user {
-  @apply bg-primary text-primary-foreground ml-auto;
-}
+@layer components {
+  .message-user {
+    @apply bg-primary text-primary-foreground ml-auto;
+  }
 
-.message-assistant {
-  @apply bg-card text-card-foreground border border-border;
-}
+  .message-assistant {
+    @apply bg-card text-card-foreground border border-border;
+  }
 
-.message-system {
-  @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
+  .message-system {
+    @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
+  }
 }
