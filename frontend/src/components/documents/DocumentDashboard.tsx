@@ -4,7 +4,7 @@ import { DocumentUpload } from './DocumentUpload';
 import { DocumentList } from './DocumentList';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../ui/badge';
 
 interface DocumentSuggestion {
   type: string;

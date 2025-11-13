@@ -41,7 +41,10 @@
     "db:studio": "cd backend && npm run db:studio",
     "db:migrate": "cd backend && npm run db:migrate",
     "db:reset": "cd backend && npm run db:reset",
-    "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:migrate"
+    "setup": "npm run install:all && cd backend && npm run db:generate && npm run db:migrate",
+    "migration:check": "npm audit --workspaces && npx depcheck && npx npm-check-updates --workspaces",
+    "migration:baseline": "npm run test:coverage > migration-baseline.txt && npm run lint > migration-lint-baseline.txt",
+    "migration:backup": "cp package-lock.json package-lock.json.backup && cp frontend/package-lock.json frontend/package-lock.json.backup && cp backend/package-lock.json backend/package-lock.json.backup"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

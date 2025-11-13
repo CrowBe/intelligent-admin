@@ -428,4 +428,28 @@ npx vitest --inspect-brk path/to/test.test.ts
 - Adopt new testing patterns and best practices
 - Evaluate new tools for testing efficiency
 
+### Migration Testing Strategy
+
+#### Stack Upgrade Testing
+When upgrading core dependencies (React, TypeScript, Vitest, etc.), follow these testing protocols:
+
+**Pre-Migration Baseline:**
+- Establish test coverage baseline with `npm run test:coverage`
+- Document current test execution times and performance metrics
+- Record any existing test flakiness or known issues
+
+**During Migration Testing:**
+- Run test suite after each major dependency upgrade
+- Monitor for new TypeScript errors or test failures
+- Verify Storybook visual components still render correctly
+- Test authentication flows and API integrations thoroughly
+
+**Post-Migration Validation:**
+- Compare test coverage to pre-migration baseline
+- Verify all critical user paths still function correctly
+- Run extended test suite including integration tests
+- Performance test to ensure no regression in test execution speed
+
+For detailed migration procedures, see [Migration Guide](./migration-guide.md).
+
 This testing strategy ensures our AI-powered administrative assistant maintains high quality standards while enabling rapid development and reliable deployment for Australian trade businesses.

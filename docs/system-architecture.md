@@ -314,4 +314,28 @@ intelligent-admin/
 - **Industry Knowledge**: Document processing effectiveness and usage
 - **Integration Health**: OAuth token refresh rates and API reliability
 
+## Stack Migration & Upgrade Considerations
+
+### Upgrade Path Management
+The monorepo architecture supports systematic upgrades with minimal disruption:
+
+- **Coordinated Upgrades**: All packages maintain compatible dependency versions
+- **Testing-First**: Comprehensive test coverage ensures safe migrations
+- **Rollback Strategy**: Git-based rollback with package lock backups
+- **Security Priority**: Security patches applied immediately across all packages
+
+### Migration Strategy
+- **TypeScript-First**: Core type system upgrades before framework updates
+- **Build Tools**: Vite, ESLint, and Vitest upgrades for development infrastructure
+- **Framework Updates**: React and Express upgrades with breaking change management
+- **Database Migrations**: Prisma upgrades with schema backup and rollback procedures
+
+For detailed migration procedures, see [Migration Guide](./migration-guide.md).
+
+### Future-Proofing Architecture
+- **LTS Alignment**: Node.js LTS and stable dependency versions
+- **Backward Compatibility**: Gradual migration paths for major version updates
+- **Testing Coverage**: 80% minimum coverage requirement protects against regression
+- **Documentation**: Migration procedures documented for team consistency
+
 This architecture provides a robust foundation for a scalable, secure, and maintainable AI-powered administrative assistant specifically designed for Australian trade businesses, with clear paths for future enhancement and growth.
