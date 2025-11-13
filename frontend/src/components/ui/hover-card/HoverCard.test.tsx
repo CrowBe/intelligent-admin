@@ -1,16 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from './HoverCard';
 
 describe('HoverCard', () => {
-  it('renders without crashing', () => {
-    const { container } = render(
+  it('renders without crashing', async () => {
+    render(
       <HoverCard>
         <HoverCardTrigger>Hover me</HoverCardTrigger>
         <HoverCardContent>Content</HoverCardContent>
       </HoverCard>
     );
-    expect(container.querySelector('[data-slot="hover-card"]')).toBeInTheDocument();
+
+    // Verify trigger is rendered
+    const trigger = screen.getByText('Hover me');
+    expect(trigger).toBeInTheDocument();
+
+    // Hover over trigger to show content
+    await userEvent.hover(trigger);
+
+    // Wait for content to appear after hover
+    await waitFor(() => {
+      expect(screen.getByText('Content')).toBeInTheDocument();
+    });
   });
 
   it('renders trigger correctly', () => {
@@ -23,7 +35,7 @@ describe('HoverCard', () => {
     expect(screen.getByText('Hover trigger')).toBeInTheDocument();
   });
 
-  it('applies custom className to content', () => {
+  it('applies custom className to content', async () => {
     render(
       <HoverCard defaultOpen>
         <HoverCardTrigger>Trigger</HoverCardTrigger>
@@ -32,8 +44,11 @@ describe('HoverCard', () => {
         </HoverCardContent>
       </HoverCard>
     );
-    const content = screen.getByText('Content');
-    expect(content).toHaveClass('custom-hover-card');
+
+    await waitFor(() => {
+      const content = screen.getByText('Content');
+      expect(content).toHaveClass('custom-hover-card');
+    });
   });
 
   it('has correct data-slot attributes', () => {

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../ui/badge';
 
 interface DocumentUploadProps {
   onUploadComplete?: (document: any) => void;
@@ -107,10 +107,15 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
 
       const result = await response.json();
 
+      // Validate response structure
+      if (!result?.document?.id) {
+        throw new Error('Invalid server response: missing document ID');
+      }
+
       // Update file status to processing
-      setUploadingFiles(prev => 
-        prev.map(f => 
-          f.file === file 
+      setUploadingFiles(prev =>
+        prev.map(f =>
+          f.file === file
             ? { ...f, status: 'processing', documentId: result.document.id, progress: 100 }
             : f
         )

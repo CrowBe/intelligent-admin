@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 
 describe('Popover', () => {
@@ -12,14 +13,25 @@ describe('Popover', () => {
     expect(screen.getByText('Open')).toBeInTheDocument();
   });
 
-  it('renders with data-slot attribute', () => {
-    const { container } = render(
+  it('renders with data-slot attribute', async () => {
+    render(
       <Popover>
         <PopoverTrigger>Open</PopoverTrigger>
+        <PopoverContent>Popover Content</PopoverContent>
       </Popover>
     );
-    const popover = container.querySelector('[data-slot="popover"]');
-    expect(popover).toBeInTheDocument();
+
+    // Click trigger to open popover
+    const trigger = screen.getByRole('button');
+    await userEvent.click(trigger);
+
+    // Wait for content to appear and verify data-slot attribute
+    await waitFor(() => {
+      const content = screen.getByText('Popover Content');
+      expect(content).toBeInTheDocument();
+      const contentElement = content.closest('[data-slot="popover-content"]');
+      expect(contentElement).toBeInTheDocument();
+    });
   });
 
   it('applies custom className to content', () => {

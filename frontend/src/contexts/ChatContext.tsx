@@ -8,6 +8,7 @@ interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  context?: SectionContext;
   metadata?: {
     suggestions?: string[];
     actions?: string[];
@@ -52,8 +53,14 @@ type ChatAction =
   | { type: 'UPDATE_MESSAGE'; payload: { id: string; updates: Partial<Message> } }
   | { type: 'CLEAR_MESSAGES' };
 
+export interface SectionContext {
+  page?: string;
+  section?: string;
+  data?: any;
+}
+
 interface ChatContextType extends ChatState {
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, context?: SectionContext) => Promise<void>;
   createSession: (title?: string) => Promise<ChatSession>;
   switchSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -211,7 +218,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, context?: SectionContext) => {
     if (!state.currentSession) return;
 
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -223,6 +230,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       role: 'user',
       content,
       timestamp: new Date(),
+      context,
     };
 
     dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
@@ -243,7 +251,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             role: msg.role as 'user' | 'assistant' | 'system',
             content: msg.content
           }));
-          messages.push({ role: 'user', content });
+
+          // Add context to user message if provided
+          let contextualContent = content;
+          if (context) {
+            contextualContent = `[Context: ${context.section || 'general'}${context.page ? ` on ${context.page}` : ''}]\n${content}`;
+            if (context.data) {
+              contextualContent += `\n[Section Data: ${JSON.stringify(context.data)}]`;
+            }
+          }
+
+          messages.push({ role: 'user', content: contextualContent });
 
           // Call Ollama API
           const response = await ollamaApi.generateChatCompletion(messages, {
@@ -263,7 +281,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Use mock response for development (or when Ollama is not available)
         await new Promise(resolve => setTimeout(resolve, 1500));
-        assistantContent = `I understand you need help with "${content}". Let me assist you with that. ${!isOllamaAvailable ? '(Ollama is not available - using mock response)' : '(Using mock response - Ollama is disabled)'}`;
+        const contextInfo = context ? ` regarding ${context.section}` : '';
+        assistantContent = `I understand you need help${contextInfo} with "${content}". Let me assist you with that. ${!isOllamaAvailable ? '(Ollama is not available - using mock response)' : '(Using mock response - Ollama is disabled)'}`;
         processingTime = 1500;
       }
 
