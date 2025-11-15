@@ -1,5 +1,9 @@
 # Critical Review: Claude Agent SDK Migration Plan
 
+> **Purpose:** Critical analysis of the original 1,742-line migration plan. Identifies what was wrong with premature planning and why the experiment-first approach is better. Read this to understand common pitfalls in migration planning.
+
+---
+
 ## The Problem with the Current Plan
 
 The 1,742-line migration plan suffers from:

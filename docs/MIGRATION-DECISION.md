@@ -1,15 +1,19 @@
 # Migration Decision Framework
 
+> **Purpose:** One-page decision framework for Agent SDK evaluation. Answers "Should we migrate?" with clear recommendation: experiment first, not full migration. Identifies the mismatch between user needs (assistance) and Agent SDK strengths (autonomy).
+
+---
+
 ## Current Situation
 
 **What works:**
 - Phase 1 complete: React + Express.js + PostgreSQL monorepo
-- Email urgency detection operational (423 lines, 2s response, 90% accuracy)
+- Email urgency detection operational
 - User stories defined (Dave the Electrician wants ASSISTED workflows)
 
 **Proposed change:**
 - Migrate to Claude Agent SDK
-- Original plan: 16 weeks, 3-4 developers, complete rewrite
+- Original plan: Complete rewrite with multiple specialized agents
 
 ## The Critical Question
 
@@ -31,7 +35,7 @@
 
 ### Don't Migrate. Experiment.
 
-**2 weeks. 1 developer. Prove value first.**
+**Prove value first through structured experiments.**
 
 ### Week 1: MCP Server Experiment
 - Build Gmail MCP server
@@ -47,9 +51,9 @@
 
 ### Possible Outcomes
 
-1. **MCP + Agents both valuable** → Hybrid approach (4-6 weeks, not 16)
-2. **Only MCP valuable** → Add MCP servers only (2-3 weeks)
-3. **Neither valuable** → Improve existing services (0 weeks migration)
+1. **MCP + Agents both valuable** → Hybrid approach
+2. **Only MCP valuable** → Add MCP servers only
+3. **Neither valuable** → Improve existing services
 
 ## Decision Points
 
@@ -68,23 +72,22 @@
 - ❌ 5 specialized agents
 - ❌ Master orchestrator
 - ❌ Database schema redesign
-- ❌ 16-week timeline
 - ❌ Complete architecture rewrite
 
 ## What We Do Next
 
-**Immediate (Today):**
+**Immediate:**
 1. Create experiment branch: `experiment/mcp-agent-validation`
 2. Document current email service baseline
 3. Set success criteria for Experiment 1
 
-**Day 1-5 (Week 1):**
+**Week 1:**
 4. Build Gmail MCP server
 5. Integrate with existing backend
 6. Measure and compare
 7. Go/no-go decision
 
-**Day 6-10 (Week 2, if Week 1 succeeds):**
+**Week 2 (if Week 1 succeeds):**
 8. Build emergency workflow agent
 9. Compare to manual approach
 10. Final decision: adopt/adapt/abandon
@@ -94,29 +97,27 @@
 **Experiment succeeds if:**
 - At least ONE metric improves >30%
 - NO metrics degrade >20%
-- Completed within 5 days
 - Developer experience better or same
 
 **Experiment fails if:**
 - No meaningful improvements
 - Increased complexity
-- Takes >5 days
 - Worse developer experience
 
-## Files Created
+## Related Documents
 
-1. **claude-agent-sdk-migration-plan.md** - Original 1,742-line plan (too detailed, premature)
-2. **claude-agent-sdk-migration-critique.md** - Critical review of original plan
-3. **agent-sdk-experiment-plan.md** - Proper 2-week experiment approach
-4. **MIGRATION-DECISION.md** - This file (one-page summary)
+1. **IMPLEMENTATION-PLAN.md** - Detailed experiment execution plan
+2. **agent-sdk-experiment-plan.md** - Strategic framework
+3. **claude-agent-sdk-migration-critique.md** - Critical review of original approach
+4. **claude-agent-sdk-migration-plan.md** - Technical reference (original detailed plan)
 
 ## Recommendation
 
 **Start with experiments, not migration.**
 
-- Risk: 2 weeks, $500
-- Potential gain: Validated architecture improvement
-- Fallback: Continue with current approach (which works)
+- **Approach:** Validate assumptions through experiments
+- **Fallback:** Continue with current approach (which works)
+- **Decision:** Based on data, not assumptions
 
 **Next action:** Create experiment branch and start Week 1.
 

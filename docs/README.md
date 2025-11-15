@@ -1,15 +1,13 @@
 # Documentation Index
 
-## Agent SDK Evaluation Documents
-
-This directory contains the complete analysis and plan for evaluating the Claude Agent TypeScript SDK for potential adoption in the Intelligent Admin application.
+> **Purpose:** Navigation guide for all Agent SDK evaluation documents. Start here to understand the document structure and read order based on your role.
 
 ---
 
 ## Read These Documents In Order
 
 ### 1. 📋 **START HERE: [MIGRATION-DECISION.md](./MIGRATION-DECISION.md)**
-**One-page summary of the situation and recommendation**
+**One-page decision framework**
 - Current state and what works
 - Critical question: Is Agent SDK solving a real problem?
 - User story mismatch: assistance vs autonomy
@@ -18,35 +16,25 @@ This directory contains the complete analysis and plan for evaluating the Claude
 
 ### 2. 🧪 **[IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md)**
 **Detailed 2-week experiment plan with day-by-day instructions**
-- Week 1: Gmail MCP server experiment (5 days)
-- Week 2: Agent orchestration experiment (5 days)
+- Week 1: Gmail MCP server experiment
+- Week 2: Agent orchestration experiment
 - Success criteria, metrics, and decision points
-- Clear next steps based on results
-- **Read time: 20 minutes**
+- **Read time: 15 minutes**
 - **Use this:** For execution guidance
 
-### 3. 💰 **[API-KEYS-AND-COSTS.md](./API-KEYS-AND-COSTS.md)**
-**Complete cost analysis and API requirements**
-- Current vs Agent SDK cost comparison
-- Experiment costs: ~$10 (not $500)
-- ROI reality: 6-135 years payback period
-- API key setup instructions
-- **Read time: 15 minutes**
-- **Key insight:** Migrate for features, not cost savings
-
-### 4. 🎯 **[agent-sdk-experiment-plan.md](./agent-sdk-experiment-plan.md)**
-**Strategic experiment framework (alternative view)**
+### 3. 🎯 **[agent-sdk-experiment-plan.md](./agent-sdk-experiment-plan.md)**
+**Strategic experiment framework**
 - Why experiment before migrating
 - Hypothesis testing approach
 - Decision tree for different outcomes
 - **Read time: 10 minutes**
 - **Use this:** For understanding the "why"
 
-### 5. 🔍 **[claude-agent-sdk-migration-critique.md](./claude-agent-sdk-migration-critique.md)**
-**Critical review of the original migration plan**
-- Problems with premature planning
+### 4. 🔍 **[claude-agent-sdk-migration-critique.md](./claude-agent-sdk-migration-critique.md)**
+**Critical review of premature planning**
+- Problems with detailed planning before validation
 - Missing critical questions
-- Why the original 16-week plan was wrong
+- Why experiment-first approach is better
 - **Read time: 10 minutes**
 - **Use this:** To understand what NOT to do
 
@@ -55,29 +43,18 @@ This directory contains the complete analysis and plan for evaluating the Claude
 ## Reference Documents
 
 ### 📚 **[claude-agent-sdk-migration-plan.md](./claude-agent-sdk-migration-plan.md)**
-**Original comprehensive migration plan (1,742 lines)**
-- ⚠️ **DO NOT USE** - Too detailed, premature
-- Contains useful technical details about Agent SDK
-- Good reference for implementation specifics
+**Original comprehensive migration plan**
+- ⚠️ **Reference only** - Contains premature implementation details
+- Useful technical details about Agent SDK capabilities
+- Good reference for implementation specifics after experiments succeed
 - **Read time: 60 minutes**
-- **Use this:** Only for technical reference after experiments succeed
+- **Use this:** Only for technical reference if experiments prove successful
 
 ### 📖 **User Stories & Requirements**
 - [user-stories.md](./user-stories.md) - Dave the Electrician's journey
 - [development-plan.md](./development-plan.md) - Current Phase 2 plan
 - [development-roadmap.md](./development-roadmap.md) - Long-term vision
 - [system-architecture.md](./system-architecture.md) - Current architecture
-
-### 🏗️ **Architecture & Technical**
-- [project-structure.md](./project-structure.md) - Monorepo organization
-- [api-documentation.md](./api-documentation.md) - Current API endpoints
-- [data-models.md](./data-models.md) - Database schema
-- [testing-strategy.md](./testing-strategy.md) - Testing approach
-
-### 🔧 **Development & Operations**
-- [development-environment.md](./development-environment.md) - Local setup
-- [migration-guide.md](./migration-guide.md) - Dependency updates
-- [mcp-integration-plan.md](./mcp-integration-plan.md) - Original MCP plan
 
 ---
 
@@ -88,15 +65,13 @@ This directory contains the complete analysis and plan for evaluating the Claude
 ### 👔 **Executive / Stakeholder**
 Read in order:
 1. MIGRATION-DECISION.md (5 min)
-2. API-KEYS-AND-COSTS.md - Cost section (5 min)
-3. **Decision:** Approve 2-week experiment? Yes/No
+2. **Decision:** Approve 2-week experiment? Yes/No
 
 ### 👨‍💻 **Developer (Implementation)**
 Read in order:
 1. MIGRATION-DECISION.md (5 min)
-2. IMPLEMENTATION-PLAN.md (20 min)
-3. API-KEYS-AND-COSTS.md - Setup section (5 min)
-4. **Action:** Start Day 0 preparation
+2. IMPLEMENTATION-PLAN.md (15 min)
+3. **Action:** Start Day 0 preparation
 
 ### 🎨 **Product Manager**
 Read in order:
@@ -108,7 +83,7 @@ Read in order:
 ### 🔬 **Architect / Tech Lead**
 Read in order:
 1. claude-agent-sdk-migration-critique.md (10 min)
-2. IMPLEMENTATION-PLAN.md (20 min)
+2. IMPLEMENTATION-PLAN.md (15 min)
 3. system-architecture.md (15 min)
 4. **Decision:** Technical approach sound?
 
@@ -123,17 +98,16 @@ Read in order:
 - Data-driven decision at end of each week
 
 ### ❌ **What We're NOT Doing**
-- 16-week migration commitment
-- Complete architecture rewrite
+- Complete migration before validation
+- Full architecture rewrite
 - 5 specialized agents + master orchestrator
 - Big-bang deployment
 
 ### 💡 **Why This Approach**
 - Current system works (Phase 1 complete)
 - User stories need assistance, not autonomy
-- API cost savings don't justify migration ($54/month vs $8K dev cost)
-- Migration should be for better architecture, not cheaper APIs
 - Experiment first, commit later
+- Migration should be for better architecture, proven through experiments
 
 ---
 
@@ -155,8 +129,8 @@ Week 2: Agent Experiment (if Week 1 succeeds)
 └─ Day 10: Final decision → Path A/B/C/D
 
 Decision Point:
-├─ Path A: MCP + Agents (4-6 weeks more)
-├─ Path B: MCP only (2-3 weeks more)
+├─ Path A: MCP + Agents (hybrid approach)
+├─ Path B: MCP only (simpler adoption)
 ├─ Path C: Neither (improve current)
 └─ Path D: Re-evaluate
 ```
@@ -169,43 +143,27 @@ Decision Point:
 - ✅ Code reduction >50% (from 423 lines)
 - ✅ Accuracy ≥90%
 - ✅ Response time <5s
-- ✅ Completed in ≤5 days
 
 ### Week 2 (Agent)
 - ✅ Simpler than manual orchestration
 - ✅ Better edge case handling
 - ✅ Response time <10s
-- ✅ Completed in ≤5 days
-
----
-
-## Budget Summary
-
-| Item | Budgeted | Expected Actual |
-|------|----------|----------------|
-| API costs (Week 1) | $25 | $1.50 |
-| API costs (Week 2) | $25 | $3.90 |
-| Developer time (2 weeks) | Allocated | ~$8,000 |
-| **Total** | $50 API + $8K dev | $10 API + $8K dev |
-
-**ROI on API savings:** 6-135 years depending on path chosen
-**Migrate for:** Better architecture and features, NOT cost savings
 
 ---
 
 ## Questions?
 
 ### "Why experiment instead of just migrating?"
-**Answer:** Current system works. User stories want assistance (human-in-loop), not autonomy. We need proof Agent SDK adds value before committing 16 weeks and $192K.
+**Answer:** Current system works. User stories want assistance (human-in-loop), not autonomy. Need proof Agent SDK adds value before committing.
 
 ### "What if both experiments fail?"
-**Answer:** We've learned what NOT to do, spent only $8K, and can improve existing architecture instead. No harm done.
+**Answer:** We've validated current approach, documented learnings, and can improve existing architecture instead. No harm done.
 
 ### "What if only MCP succeeds?"
-**Answer:** Best outcome - 67% API cost savings, simpler integrations, 2-3 week adoption timeline.
+**Answer:** Best outcome - simpler integrations, faster adoption, no complex agent orchestration needed.
 
 ### "Can we skip experiments and jump to migration?"
-**Answer:** No. That's how we get the original 1,742-line plan with unclear value. Experiments prove value first.
+**Answer:** No. That's how we get premature detailed plans without clear value. Experiments prove value first.
 
 ### "What happens after experiments?"
 **Answer:** Depends on results. See IMPLEMENTATION-PLAN.md "Post-Experiment: Next Steps by Path"
@@ -214,14 +172,14 @@ Decision Point:
 
 ## Document Status
 
-| Document | Status | Last Updated | Owner |
-|----------|--------|--------------|-------|
-| MIGRATION-DECISION.md | ✅ Final | 2025-01-13 | Architecture |
-| IMPLEMENTATION-PLAN.md | ✅ Final | 2025-01-13 | Engineering |
-| API-KEYS-AND-COSTS.md | ✅ Final | 2025-01-13 | Finance/Ops |
-| agent-sdk-experiment-plan.md | ✅ Final | 2025-01-13 | Engineering |
-| claude-agent-sdk-migration-critique.md | ✅ Final | 2025-01-13 | Architecture |
-| claude-agent-sdk-migration-plan.md | ⚠️ Reference only | 2025-01-13 | N/A |
+| Document | Status | Purpose |
+|----------|--------|---------|
+| MIGRATION-DECISION.md | ✅ Final | One-page decision framework |
+| IMPLEMENTATION-PLAN.md | ✅ Final | Day-by-day execution plan |
+| agent-sdk-experiment-plan.md | ✅ Final | Strategic framework |
+| claude-agent-sdk-migration-critique.md | ✅ Final | Critical review |
+| claude-agent-sdk-migration-plan.md | ⚠️ Reference | Original detailed plan |
+| README.md | ✅ Final | Navigation guide (this file) |
 
 ---
 
@@ -230,7 +188,7 @@ Decision Point:
 **Ready to proceed?**
 
 1. ✅ Read MIGRATION-DECISION.md (5 min)
-2. ✅ Read IMPLEMENTATION-PLAN.md (20 min)
+2. ✅ Read IMPLEMENTATION-PLAN.md (15 min)
 3. ✅ Get approval for 2-week experiment
 4. ✅ Obtain Anthropic API key
 5. ✅ Start Day 0 preparation
@@ -239,10 +197,9 @@ Decision Point:
 **Not ready?**
 - Review user stories (user-stories.md)
 - Understand current architecture (system-architecture.md)
-- Check API costs (API-KEYS-AND-COSTS.md)
 - Ask questions (create GitHub issue)
 
 ---
 
-*Last updated: 2025-01-13*
+*Last updated: 2025-11-15*
 *For questions: Review FAQ above or create GitHub issue*

@@ -1,5 +1,11 @@
 # Claude Agent SDK Migration Plan
 
+> **Purpose:** Original comprehensive migration plan (1,742 lines). **Reference only** - contains premature implementation details created before validation. Contains useful technical information about Agent SDK architecture and capabilities. Use only as technical reference if experiments prove Agent SDK adds value.
+
+> ⚠️ **Do not use this plan for implementation.** See IMPLEMENTATION-PLAN.md for the validated experiment-first approach.
+
+---
+
 ## Executive Summary
 
 This document outlines a comprehensive plan to migrate or rebuild the **Intelligent Admin** application using the **Claude Agent TypeScript SDK**. The migration represents a paradigm shift from a traditional web application architecture to an **agent-based autonomous system** that can proactively manage administrative tasks for Australian trade businesses.
